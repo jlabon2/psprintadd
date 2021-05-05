@@ -2,7 +2,7 @@
 Copy-Item -Path "\\labtop\repos\Base\MainWindow.xaml" -Destination "C:\PrintDaddy\Window.xaml" -Force
 Remove-Variable * -ErrorAction SilentlyContinue
 $ErrorActionPreference = 'Continue'
-$printerList = @('labdc1','lab10', 'lab100')
+$printerList = @('lab10')
 if ($host.name -eq 'ConsoleHost') {
 
     $SW_HIDE, $SW_SHOW = 0, 5

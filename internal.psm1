@@ -125,11 +125,25 @@ function Find-PrinterInfo {
         #$PrinterConfig.PrinterOnline = 'Online'
         Update-Field -controlName Find_Connectivity -SyncHash $syncHash -Value Online -Property Text
         try {
-            $uri = "http:\\$($PrinterConfig.PrinterIP)"
-            $siteTitle = (Invoke-WebRequest -Uri $uri -ErrorAction Stop).ParsedHtml.Title
-            if ($siteTitle) { Update-Field -controlName Find_Model -SyncHash $syncHash -Value $siteTitle -Property Text } 
-            if (![string]::IsNullOrEmpty($uri -replace 'http:\\')) {Update-Field -controlName Find_PrinterURL -SyncHash $syncHash -Property NavigateUri -Value $uri} 
+        $uri = "http:\\$($PrinterConfig.PrinterIP)"
+        $site = (Invoke-WebRequest -Uri $uri -ErrorAction Stop)
+        $siteTitle = $site.ParsedHtml.Title
+
+        # Check for Ricoh printers
+        if ($siteTitle -match 'Web Image Monitor') {
+            $ricohUri = "http://$($PrinterConfig.PrinterIP)/web/guest/en/websys/webArch/header.cgi"   
+            $siteTitle = ('Ricoh ' + ((Invoke-WebRequest -Uri $ricohUri -ErrorAction SilentlyContinue).ParsedHtml.body.outerText -split "`n")[1]).Trim()
         }
+
+        # Check for Dell
+        elseif ($siteTitle -like $null) {
+            $dellUri = "http://$($PrinterConfig.PrinterIP)/frametop.htm"
+            $siteTitle = (Invoke-WebRequest -Uri $dellUri -ErrorAction SilentlyContinue).ParsedHtml.Title
+        }
+
+        if ($siteTitle) { Update-Field -controlName Find_Model -SyncHash $syncHash -Value $siteTitle -Property Text } 
+        if (![string]::IsNullOrEmpty($uri -replace 'http:\\')) {Update-Field -controlName Find_PrinterURL -SyncHash $syncHash -Property NavigateUri -Value $uri} 
+    }
 
         catch { 
             
@@ -814,7 +828,7 @@ function Get-PortList {
     }
     else {
         try {
-            [array]$portList = (Get-PrinterPort -ComputerName $PrintServer -ErrorAction Stop | Where-Object {$_.Description -eq 'Standard TCP/IP Port'}).Name
+            [array]$portList = (Get-PrinterPort -ComputerName $PrintServer -ErrorAction Stop | Where-Object {$_.Description -eq 'Standard TCP/IP Port'} | Sort-Object Name).Name
             Update-Field -ControlName Port_Sel -SyncHash $syncHash -Value $portList -Property ItemsSource
         }
         catch {
@@ -858,7 +872,7 @@ function Get-DriverList {
     else {
 
         try {
-            [array]$driverList = (Get-PrinterDriver -ComputerName $PrintServer | Where-Object {$_.Manufacturer -ne 'Microsoft'}).Name
+            [array]$driverList = (Get-PrinterDriver -ComputerName $PrintServer | Where-Object {$_.Manufacturer -ne 'Microsoft'} | Sort-Object Name).Name
             Update-Field -ControlName Driver_Sel -SyncHash $syncHash -Value $driverList -Property ItemsSource
         }
         catch {
