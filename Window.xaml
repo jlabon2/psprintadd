@@ -1,0 +1,693 @@
+﻿<Controls:MetroWindow
+    x:Class="RepGen.MainWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:Controls="clr-namespace:MahApps.Metro.Controls;assembly=MahApps.Metro"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:local="clr-namespace:RepGen"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:md="http://materialdesigninxaml.net/winfx/xaml/themes"
+    xmlns:sys="clr-namespace:System;assembly=mscorlib"
+    Title="The Print Daddy"
+    Width="800"
+    Height="600"
+    BorderThickness="1.5"
+    FontFamily="Roboto"
+    GlowBrush="#3d3a3a"
+    NonActiveGlowBrush="#3d3a3a"
+    NonActiveWindowTitleBrush="#3d3a3a"
+    ResizeMode="CanMinimize"
+    ShowDialogsOverTitleBar="True"
+    WindowTitleBrush="#3d3a3a"
+    mc:Ignorable="d">
+    <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="pack://application:,,,/MaterialDesignThemes.Wpf;component/Themes/MaterialDesignTheme.Light.xaml" />
+                <ResourceDictionary Source="pack://application:,,,/MaterialDesignThemes.Wpf;component/Themes/MaterialDesignTheme.Defaults.xaml" />
+                <ResourceDictionary Source="pack://application:,,,/MaterialDesignColors;component/Themes/Recommended/Primary/MaterialDesignColor.Grey.xaml" />
+                <ResourceDictionary Source="pack://application:,,,/MaterialDesignThemes.Wpf;component/Themes/MaterialDesignTheme.PopupBox.xaml" />
+                <ResourceDictionary Source="pack://application:,,,/MaterialDesignThemes.Wpf;component/Themes/MaterialDesignTheme.Defaults.xaml" />
+                <ResourceDictionary Source="pack://application:,,,/MahApps.Metro;component/Styles/Controls.xaml" />
+                <ResourceDictionary Source="pack://application:,,,/MahApps.Metro;component/Styles/Themes/Light.Steel.xaml" />
+
+            </ResourceDictionary.MergedDictionaries>
+            <!--  primary hues  -->
+            <SolidColorBrush x:Key="PrimaryHueLightBrush" Color="DimGray" />
+            <SolidColorBrush x:Key="PrimaryHueLightForegroundBrush" Color="White" />
+            <SolidColorBrush x:Key="PrimaryHueMidBrush" Color="#3d3a3a" />
+            <SolidColorBrush x:Key="PrimaryHueMidForegroundBrush" Color="White" />
+            <SolidColorBrush x:Key="PrimaryHueDarkBrush" Color="#3d3a3a" />
+            <SolidColorBrush x:Key="PrimaryHueDarkForegroundBrush" Color="#3d3a3a" />
+            <!--  accent  -->
+            <SolidColorBrush x:Key="SecondaryAccentBrush" Color="#3d3a3a" />
+            <SolidColorBrush x:Key="SecondaryAccentForegroundBrush" Color="#3d3a3a" />
+
+            <Style x:Key="DefaultGroupBox" BasedOn="{StaticResource MaterialDesignCardGroupBox}" TargetType="GroupBox">
+                <Setter Property="Background" Value="White" />
+                <Setter Property="HorizontalAlignment" Value="Stretch" />
+                <Setter Property="Margin" Value="0,10,0,10" />
+                <Style.Triggers>
+                    <Trigger Property="IsEnabled" Value="False">
+                        <Setter Property="Background">
+                            <Setter.Value>
+
+                                <SolidColorBrush Opacity="0.15" Color="#3d3a3a" />
+
+                            </Setter.Value>
+                        </Setter>
+                    </Trigger>
+                </Style.Triggers>
+            </Style>
+
+            <Style x:Key="PrintGroupBox" BasedOn="{StaticResource DefaultGroupBox}" TargetType="GroupBox">
+                <Setter Property="IsEnabled" Value="{Binding ElementName=PrintServer_Panel, Path=IsEnabled}" />
+                <Style.Triggers>
+                    <DataTrigger Binding="{Binding PrintServer}" Value="{x:Null}">
+                        <Setter Property="IsEnabled" Value="False" />
+                    </DataTrigger>
+                </Style.Triggers>
+            </Style>
+
+
+            <Style x:Key="SelectionCheckBox" BasedOn="{StaticResource MaterialDesignCheckBox}" TargetType="CheckBox">
+                <Setter Property="FontWeight" Value="Thin" />
+
+            </Style>
+
+            <Style x:Key="EntryBox" BasedOn="{StaticResource MaterialDesignFilledTextBox}" TargetType="TextBox">
+                <Setter Property="Padding" Value="4,3,4,0" />
+                <Setter Property="Width" Value="180" />
+                <Setter Property="VerticalAlignment" Value="Center" />
+                <Setter Property="Width" Value="180" />
+                <Setter Property="md:HintAssist.FloatingScale" Value=".7" />
+                <Setter Property="HorizontalContentAlignment" Value="Left" />
+                <Setter Property="FontSize" Value="14" />
+                <Setter Property="Margin" Value="5,0,5,0" />
+            </Style>
+
+
+            <Style x:Key="EntryBoxFields" BasedOn="{StaticResource EntryBox}" TargetType="TextBox">
+
+                <Setter Property="Margin" Value="5,0,5,7.5" />
+            </Style>
+
+            <Style x:Key="SelectionBox" BasedOn="{StaticResource MaterialDesignFilledComboBox}" TargetType="ComboBox">
+                <Setter Property="Padding" Value="4,3,4,0" />
+                <Setter Property="Width" Value="180" />
+                <Setter Property="VerticalAlignment" Value="Center" />
+                <Setter Property="Width" Value="180" />
+                <Setter Property="md:HintAssist.FloatingScale" Value=".7" />
+                <Setter Property="HorizontalContentAlignment" Value="Left" />
+                <Setter Property="FontSize" Value="14" />
+                <Setter Property="Margin" Value="5,0,5,0" />
+                <Style.Triggers>
+                    <Trigger Property="HasItems" Value="False">
+                        <Setter Property="IsEnabled" Value="False" />
+                    </Trigger>
+                </Style.Triggers>
+            </Style>
+
+
+            <Style x:Key="WideButton" BasedOn="{StaticResource MaterialDesignFlatLightBgButton}" TargetType="Button">
+                <Setter Property="Padding" Value="2.5" />
+                <Setter Property="Width" Value="75" />
+                <Setter Property="Height" Value="25" />
+                <Setter Property="FontSize" Value="9" />
+                <Setter Property="Typography.Capitals" Value="AllSmallCaps" />
+                <Setter Property="HorizontalContentAlignment" Value="Center" />
+
+            </Style>
+
+            <Style BasedOn="{StaticResource MaterialDesignLinearProgressBar}" TargetType="ProgressBar">
+                <Setter Property="Foreground" Value="White" />
+                <Setter Property="Width" Value="100" />
+                <Setter Property="Background" Value="White" />
+                <Setter Property="IsIndeterminate" Value="True" />
+                <Setter Property="HorizontalAlignment" Value="Right" />
+                <Setter Property="Visibility" Value="Collapsed" />
+            </Style>
+        </ResourceDictionary>
+    </Window.Resources>
+
+
+
+    <Grid ShowGridLines="False">
+
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="200" />
+            <RowDefinition Height="50" />
+        </Grid.RowDefinitions>
+        <md:DialogHost Name="Exception_Dialog" Grid.RowSpan="4" Panel.ZIndex="5" IsOpen="False" Style="{StaticResource MaterialDesignEmbeddedDialogHost}">
+            <md:DialogHost.DialogContent>
+                <DockPanel Width="300" Height="150" Margin="25">
+                    <HeaderedContentControl HorizontalAlignment="Center" DockPanel.Dock="Top" FontSize="14" FontWeight="Medium" Header="EXCEPTION" />
+                    <StackPanel DockPanel.Dock="Top" Orientation="Horizontal">
+                        <TextBlock
+                            Margin="-10,0,15,0"
+                            VerticalAlignment="Center"
+                            FontFamily="Segoe MDL2 Assets"
+                            FontSize="32"
+                            Foreground="IndianRed"
+                            Text="" />
+                        <TextBox
+                            Name="Exception_Text"
+                            Width="225"
+                            Height="100"
+                            md:TextFieldAssist.DecorationVisibility="Collapsed"
+                            BorderThickness="0"
+                            FontSize="12"
+                            HorizontalScrollBarVisibility="Disabled"
+                            TextWrapping="Wrap"
+                            VerticalScrollBarVisibility="Auto">
+                            <TextBox.Style>
+                                <Style BasedOn="{StaticResource MaterialDesignTextBoxBase}" TargetType="TextBox">
+                                    <Setter Property="IsReadOnly" Value="True" />
+                                </Style>
+                            </TextBox.Style>
+                        </TextBox>
+                    </StackPanel>
+                    <Button
+                        Name="Exception_Close"
+                        Height="30"
+                        Margin="0,5,0,0"
+                        Content="Close"
+                        FontSize="14"
+                        Style="{StaticResource WideButton}" />
+                </DockPanel>
+            </md:DialogHost.DialogContent>
+        </md:DialogHost>
+        <Grid Grid.Row="0" Margin="15,0,15,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="10" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <GroupBox Name="Find_Panel" Grid.Column="0" Style="{StaticResource DefaultGroupBox}">
+                <GroupBox.Header>
+                    <DockPanel>
+                        <HeaderedContentControl Foreground="White" Header="I. FIND PRINTER" />
+                        <ProgressBar Name="Find_Progress" />
+                    </DockPanel>
+                </GroupBox.Header>
+                <StackPanel HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Orientation="Horizontal">
+                    <TextBox
+                        Name="Find_IPAddressText"
+                        Padding="4,3,4,0"
+                        md:HintAssist.FloatingScale=".7"
+                        md:HintAssist.Hint="  IP ADDRESS"
+                        md:TextFieldAssist.CharacterCounterVisibility="Collapsed"
+                        IsInactiveSelectionHighlightEnabled="True"
+                        MaxLength="15"
+                        Text="{Binding PrinterIP, Mode=TwoWay}">
+                        <TextBox.Style>
+                            <Style BasedOn="{StaticResource EntryBox}" TargetType="TextBox">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding ElementName=Find_Progress, Path=Visibility}" Value="Visible">
+                                        <Setter Property="IsReadOnly" Value="True" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBox.Style>
+                    </TextBox>
+                    <Button
+                        Name="Find_StartFind"
+                        Width="20"
+                        Height="20"
+                        Margin="-40,0,0,0"
+                        Padding="0"
+                        Content=""
+                        FontFamily="Segoe MDL2 Assets"
+                        FontSize="10"
+                        Foreground="White">
+                        <Button.Style>
+                            <Style BasedOn="{StaticResource MaterialDesignFlatLightBgButton}" TargetType="Button">
+                                <Setter Property="IsEnabled" Value="False" />
+                                <Style.Triggers>
+
+                                    <Trigger Property="Tag" Value="True">
+                                        <Setter Property="IsEnabled" Value="True" />
+                                    </Trigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                    </Button>
+                    <TextBlock
+                        Name="Find_ValidIP"
+                        Width="20"
+                        Height="20"
+                        Margin="-80,8,0,0"
+                        Padding="0"
+                        Panel.ZIndex="5"
+                        FontFamily="Segoe MDL2 Assets"
+                        FontSize="14"
+                        IsEnabled="False">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="ToolTip" Value="Invalid IP" />
+                                <Style.Triggers>
+                                    <Trigger Property="Tag" Value="">
+                                        <Setter Property="Visibility" Value="Collapsed" />
+                                    </Trigger>
+                                    <Trigger Property="Tag" Value="False">
+                                        <Setter Property="Foreground" Value="IndianRed" />
+                                        <Setter Property="Text" Value="" />
+
+                                    </Trigger>
+                                    <Trigger Property="Tag" Value="True">
+                                        <Setter Property="Foreground" Value="Green" />
+                                        <Setter Property="Text" Value="" />
+                                        <Setter Property="ToolTip" Value="Valid IP" />
+                                    </Trigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                    <StackPanel Margin="15,0,0,0">
+                        <TextBlock>
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Visibility" Value="Collapsed" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding ElementName=Find_Connectivity, Path=Text}" Value="">
+                                            <Setter Property="Visibility" Value="Visible" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                            <Run FontWeight="Bold" Text="Device Information" Typography.Capitals="AllSmallCaps" />
+                            <LineBreak />
+                            <Run FontWeight="Light" Text="No device found" />
+
+                        </TextBlock>
+                        <TextBlock>
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Visibility" Value="Visible" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding ElementName=Find_Connectivity, Path=Text}" Value="">
+                                            <Setter Property="Visibility" Value="Collapsed" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                            <Run FontWeight="Bold" Text="Device Information" Typography.Capitals="AllSmallCaps" />
+                            <LineBreak />
+                            <Run Text="Connectivity: " />
+                            <Run Name="Find_Connectivity" FontWeight="Light" Text="{Binding PrinterOnline, Mode=TwoWay}">
+                                <Run.Style>
+                                    <Style TargetType="Run">
+                                        <Setter Property="Foreground" Value="IndianRed" />
+                                        <Style.Triggers>
+
+                                            <Trigger Property="Text" Value="Online">
+                                                <Setter Property="Foreground" Value="Green" />
+                                            </Trigger>
+                                        </Style.Triggers>
+
+                                    </Style>
+                                </Run.Style>
+                            </Run>
+                            <LineBreak />
+                            <Run Text="Model: " />
+
+                            <Run Name="Find_Model" FontWeight="Light" Text="{Binding PrinterModel, Mode=TwoWay}">
+                                <Run.Style>
+                                    <Style TargetType="Run">
+                                        <Setter Property="Foreground" Value="Black" />
+                                        <Style.Triggers>
+
+                                            <Trigger Property="Text" Value="Unknown">
+                                                <Setter Property="Foreground" Value="IndianRed" />
+                                            </Trigger>
+                                        </Style.Triggers>
+
+                                    </Style>
+                                </Run.Style>
+                            </Run>
+                            <LineBreak />
+
+                            <Hyperlink Name="Find_PrinterURL" NavigateUri="{Binding PrinterURL, Mode=TwoWay}">
+                                <TextBlock Text="Printer EWS">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding ElementName=Find_Model, Path=Text}" Value="Unknown">
+                                                    <Setter Property="Visibility" Value="Collapsed" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                            </Hyperlink>
+
+                        </TextBlock>
+                    </StackPanel>
+                </StackPanel>
+            </GroupBox>
+            <GroupBox Name="DHCP_Panel" Grid.Column="2">
+                <GroupBox.Header>
+                    <DockPanel>
+                        <HeaderedContentControl Foreground="White" Header="II. CONFIGURE RESERVATION" />
+                        <ProgressBar Name="DHCP_Progress" />
+                    </DockPanel>
+                </GroupBox.Header>
+                <GroupBox.Style>
+                    <Style BasedOn="{StaticResource DefaultGroupBox}" TargetType="GroupBox">
+                        <Setter Property="IsEnabled" Value="False" />
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding PrinterOnline}" Value="Online">
+                                <Setter Property="IsEnabled" Value="True" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </GroupBox.Style>
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="80" />
+                        <ColumnDefinition Width="80" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <Button Name="DHCP_FindLease" Grid.Column="0" Content="Find lease">
+                        <Button.Style>
+                            <Style BasedOn="{StaticResource WideButton}" TargetType="Button">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding ElementName=Find_Connectivity, Path=Text}" Value="">
+                                        <Setter Property="IsEnabled" Value="False" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                    </Button>
+                    <Button Name="DHCP_ReserveLease" Grid.Column="1" Content="Reserve lease">
+                        <Button.Style>
+                            <Style BasedOn="{StaticResource WideButton}" TargetType="Button">
+                                <Setter Property="IsEnabled" Value="False" />
+                                <Style.Triggers>
+                                    <MultiDataTrigger>
+                                        <MultiDataTrigger.Conditions>
+                                            <Condition Binding="{Binding ElementName=DHCP_LeaseFound, Path=Text}" Value="Yes" />
+                                            <Condition Binding="{Binding ElementName=DHCP_Reservation, Path=Text}" Value="No" />
+                                        </MultiDataTrigger.Conditions>
+                                        <MultiDataTrigger.Setters>
+                                            <Setter Property="IsEnabled" Value="True" />
+                                        </MultiDataTrigger.Setters>
+                                    </MultiDataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                    </Button>
+                    <CheckBox
+                        Name="DHCP_Static"
+                        Grid.ColumnSpan="2"
+                        Margin="15,0,0,5"
+                        VerticalAlignment="Bottom"
+                        Content="Using static address"
+                        IsChecked="False"
+                        Style="{StaticResource SelectionCheckBox}" />
+                    <StackPanel Grid.Column="2" Margin="15,0,0,0">
+                        <TextBlock>
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Visibility" Value="Collapsed" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding ElementName=DHCP_LeaseFound, Path=Text}" Value="">
+                                            <Setter Property="Visibility" Value="Visible" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                            <Run FontWeight="Bold" Text="DHCP Information" Typography.Capitals="AllSmallCaps" />
+                            <LineBreak />
+                            <Run FontWeight="Thin" Text="Lease not searched" />
+
+                        </TextBlock>
+                        <TextBlock>
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Visibility" Value="Visible" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding ElementName=DHCP_LeaseFound, Path=Text}" Value="">
+                                            <Setter Property="Visibility" Value="Collapsed" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                            <Run FontWeight="Bold" Text="DHCP Information" Typography.Capitals="AllSmallCaps" />
+                            <LineBreak />
+                            <Run Text="Lease Found: " />
+                            <Run Name="DHCP_LeaseFound" FontWeight="Thin" Text="{Binding PrinterLease, Mode=TwoWay}">
+                                <Run.Style>
+                                    <Style TargetType="Run">
+                                        <Setter Property="Foreground" Value="IndianRed" />
+                                        <Style.Triggers>
+
+                                            <Trigger Property="Text" Value="Yes">
+                                                <Setter Property="Foreground" Value="Green" />
+                                            </Trigger>
+                                        </Style.Triggers>
+
+                                    </Style>
+                                </Run.Style>
+                            </Run>
+                            <LineBreak />
+                            <Run Text="Leasing Server: " />
+                            <Run Name="DHCP_Server" FontWeight="Thin" Text="{Binding PrinterDHCP, Mode=TwoWay}" />
+                            <LineBreak />
+                            <Run Text="Reservation Found: " />
+                            <Run Name="DHCP_Reservation" FontWeight="Thin" Text="{Binding PrinterReserved, Mode=TwoWay}">
+                                <Run.Style>
+                                    <Style TargetType="Run">
+                                        <Setter Property="Foreground" Value="Green" />
+                                        <Style.Triggers>
+
+                                            <Trigger Property="Text" Value="No">
+                                                <Setter Property="Foreground" Value="IndianRed" />
+                                            </Trigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Run.Style>
+                            </Run>
+                        </TextBlock>
+                        <TextBlock Name="DHCP_ScopeID" Text="{Binding DHCPScopeID, Mode=TwoWay}" Visibility="Collapsed" />
+                        <TextBlock Name="DHCP_ClientID" Text="{Binding PrinterMAC, Mode=TwoWay}" Visibility="Collapsed" />
+                    </StackPanel>
+                </Grid>
+            </GroupBox>
+        </Grid>
+        <Grid Grid.Row="1" Margin="15,0,15,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="10" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="10" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <GroupBox Name="PrintServer_Panel" Grid.Column="0" Header="III. SET PRINT SERVER">
+                <GroupBox.Style>
+                    <Style BasedOn="{StaticResource DefaultGroupBox}" TargetType="GroupBox">
+                        <Setter Property="IsEnabled" Value="False" />
+                        <Style.Triggers>
+
+                            <DataTrigger Binding="{Binding PrinterReserved}" Value="Yes">
+                                <Setter Property="IsEnabled" Value="True" />
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding ElementName=DHCP_Static, Path=IsChecked}" Value="True">
+                                <Setter Property="IsEnabled" Value="True" />
+                            </DataTrigger>
+
+                        </Style.Triggers>
+                    </Style>
+                </GroupBox.Style>
+                <ComboBox Name="PrintServer_Sel" md:HintAssist.Hint="Server List" SelectedValue="{Binding PrintServer}" Style="{StaticResource SelectionBox}" />
+
+            </GroupBox>
+
+            <GroupBox Name="Port_Panel" Grid.Column="2" Style="{StaticResource PrintGroupBox}">
+                <GroupBox.Header>
+                    <DockPanel>
+                        <HeaderedContentControl Foreground="White" Header="IV. SET PRINTER PORT" />
+                        <ProgressBar Name="Port_Progress" />
+                    </DockPanel>
+                </GroupBox.Header>
+                <DockPanel>
+                    <StackPanel Margin="0,15,0,0" VerticalAlignment="Center">
+                        <ComboBox Name="Port_Sel" md:HintAssist.Hint="Port List" SelectedValue="{Binding PrinterPortName}" Style="{StaticResource SelectionBox}" />
+                        <TextBlock Name="Port_Duplicate" Margin="6,5,0,-5" Foreground="IndianRed" Text="Caution: Port already exists." Visibility="Hidden" />
+                    </StackPanel>
+                    <Button
+                        Name="Port_GetList"
+                        Width="20"
+                        Height="20"
+                        Margin="0,0,0,0"
+                        Padding="0"
+                        Content=""
+                        FontFamily="Segoe MDL2 Assets"
+                        FontSize="10"
+                        Foreground="White"
+                        Style="{StaticResource MaterialDesignFlatLightBgButton}" />
+                    <Button
+                        Name="Port_Add"
+                        Width="20"
+                        Height="20"
+                        Margin="0,0,0,0"
+                        Padding="0"
+                        Content=""
+                        FontFamily="Segoe MDL2 Assets"
+                        FontSize="10"
+                        Foreground="White"
+                        Style="{StaticResource MaterialDesignFlatLightBgButton}" />
+
+
+                </DockPanel>
+            </GroupBox>
+            <GroupBox Name="Driver_Panel" Grid.Column="4" Style="{StaticResource PrintGroupBox}">
+                <GroupBox.Header>
+                    <DockPanel>
+                        <HeaderedContentControl Foreground="White" Header="V. SET PRINTER DRIVER" />
+                        <ProgressBar Name="Driver_Progress" />
+
+                    </DockPanel>
+                </GroupBox.Header>
+                <DockPanel>
+                    <ComboBox Name="Driver_Sel" md:HintAssist.Hint="Driver List" SelectedValue="{Binding PrinterDriver}" Style="{StaticResource SelectionBox}">
+                        <ComboBox.ItemTemplate>
+                            <DataTemplate>
+                                <Viewbox MaxWidth="150" StretchDirection="DownOnly">
+                                    <TextBlock Text="{Binding}" />
+                                </Viewbox>
+                            </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                    </ComboBox>
+                    <Button
+                        Name="Driver_GetList"
+                        Width="20"
+                        Height="20"
+                        Margin="0,0,0,0"
+                        Padding="0"
+                        Content=""
+                        FontFamily="Segoe MDL2 Assets"
+                        FontSize="10"
+                        Foreground="White"
+                        Style="{StaticResource MaterialDesignFlatLightBgButton}" />
+                    <Button
+                        Name="Driver_Add"
+                        Width="20"
+                        Height="20"
+                        Margin="0,0,0,0"
+                        Padding="0"
+                        Content=""
+                        FontFamily="Segoe MDL2 Assets"
+                        FontSize="10"
+                        Foreground="White"
+                        Style="{StaticResource MaterialDesignFlatLightBgButton}" />
+
+
+                </DockPanel>
+            </GroupBox>
+
+        </Grid>
+        <Grid Grid.Row="2" Margin="15,0,15,0">
+            <GroupBox Name="Prop_Panel" Grid.Column="0" Header="VI. DEFINE PRINTER PROPERTIES" Style="{StaticResource PrintGroupBox}">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="175" />
+                    </Grid.ColumnDefinitions>
+                    <DockPanel>
+                        <WrapPanel Name="Prop_Wrap" HorizontalAlignment="Left" VerticalAlignment="Top" DockPanel.Dock="Top">
+                            <TextBox Name="Prop_Campus" Padding="4,3,4,0" md:HintAssist.Hint=" CAMPUS" Style="{StaticResource EntryBoxFields}" Text="{Binding PropCampus, Mode=TwoWay}" />
+                            <TextBox Name="Prop_Building" Padding="4,3,4,0" md:HintAssist.Hint=" BUILDING" Style="{StaticResource EntryBoxFields}" Text="{Binding PropBuilding, Mode=TwoWay}" />
+                            <TextBox Name="Prop_Room" Padding="4,3,4,0" md:HintAssist.Hint=" ROOM" Style="{StaticResource EntryBoxFields}" Text="{Binding PropRoom, Mode=TwoWay}" />
+                            <TextBox Name="Prop_Department" Padding="4,3,4,0" md:HintAssist.Hint=" DEPARMTMENT" Style="{StaticResource EntryBoxFields}" Text="{Binding PropDepartment, Mode=TwoWay}" />
+                            <TextBox
+                                Name="Prop_Comments"
+                                Width="370"
+                                Padding="4,3,4,0"
+                                md:HintAssist.Hint=" COMMENTS"
+                                Style="{StaticResource EntryBoxFields}"
+                                Text="{Binding PropComments, Mode=TwoWay}" />
+                        </WrapPanel>
+                        <DockPanel DockPanel.Dock="Bottom">
+                            <TextBox Name="Prop_Name" Width="275" Padding="4,3,4,0" md:HintAssist.Hint=" PRINTER NAME" Text="{Binding PropName, Mode=TwoWay}">
+                                <TextBox.Style>
+                                    <Style BasedOn="{StaticResource EntryBoxFields}" TargetType="TextBox">
+                                        <Setter Property="IsEnabled" Value="False" />
+                                        <Style.Triggers>
+
+                                            <DataTrigger Binding="{Binding ElementName=Prop_LockName, Path=IsChecked}" Value="False">
+                                                <Setter Property="IsEnabled" Value="True" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBox.Style>
+                            </TextBox>
+                            <TextBox
+                                Name="Prop_Location"
+                                Width="275"
+                                Padding="4,3,4,0"
+                                md:HintAssist.Hint=" PRINTER LOCATION"
+                                DockPanel.Dock="Bottom"
+                                Text="{Binding PropLocation, Mode=TwoWay}">
+                                <TextBox.Style>
+                                    <Style BasedOn="{StaticResource EntryBoxFields}" TargetType="TextBox">
+                                        <Setter Property="IsEnabled" Value="False" />
+                                        <Style.Triggers>
+
+                                            <DataTrigger Binding="{Binding ElementName=Prop_LockLocation, Path=IsChecked}" Value="False">
+                                                <Setter Property="IsEnabled" Value="True" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBox.Style>
+                            </TextBox>
+
+                        </DockPanel>
+                    </DockPanel>
+                    <StackPanel Grid.Column="1" Margin="5,0,0,0" HorizontalAlignment="Left">
+                        <CheckBox Name="Prop_PublishAD" Content="Publish to ADDS" IsChecked="True" Style="{StaticResource SelectionCheckBox}" />
+                        <CheckBox Name="Prop_ServerSpool" Content="Spool on server" IsChecked="True" Style="{StaticResource SelectionCheckBox}" />
+                        <CheckBox Name="Prop_SNMP" Content="Enable SNMP" IsChecked="True" Style="{StaticResource SelectionCheckBox}" />
+                        <CheckBox Name="Prop_URL" Content="Add EWS URL to comments" IsChecked="False" Style="{StaticResource SelectionCheckBox}" />
+                        <CheckBox Name="Prop_UseModel" Content="Add model to name">
+                            <CheckBox.Style>
+                                <Style BasedOn="{StaticResource SelectionCheckBox}" TargetType="CheckBox">
+                                    <Setter Property="IsChecked" Value="True" />
+                                    <Style.Triggers>
+
+                                        <DataTrigger Binding="{Binding PrinterModel}" Value="Unknown">
+                                            <Setter Property="IsChecked" Value="False" />
+                                            <Setter Property="IsEnabled" Value="False" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </CheckBox.Style>
+                        </CheckBox>
+                        <CheckBox Name="Prop_LockName" Content="Lock name editing" IsChecked="True" Style="{StaticResource SelectionCheckBox}" />
+                        <CheckBox Name="Prop_LockLocation" Content="Lock location editing" IsChecked="True" Style="{StaticResource SelectionCheckBox}" />
+                    </StackPanel>
+                </Grid>
+
+            </GroupBox>
+        </Grid>
+
+        <DockPanel Grid.Row="3" Margin="0,0,0,10" HorizontalAlignment="Center">
+            <Button
+                Name="Main_Add"
+                Height="30"
+                Margin="0,0,5,0"
+                Content="ADD"
+                FontSize="14"
+                Style="{StaticResource WideButton}" />
+            <Button
+                Name="Main_Reset"
+                Height="30"
+                Margin="5,0,0,0"
+                Content="RESET"
+                FontSize="14"
+                Style="{StaticResource WideButton}" />
+        </DockPanel>
+    </Grid>
+</Controls:MetroWindow>
