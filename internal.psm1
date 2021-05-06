@@ -92,6 +92,10 @@ function Reset-PrintConfig {
         PropDepartment  = $null
         PropName        = $null
         PropLocation    = $null
+        PropComments    = $null
+        PropPublishADDS = $true
+        PropServerSpool = $true
+        PropAppendEWS   = $false
     })
 }
 
@@ -823,13 +827,24 @@ function Get-PortList {
     Start-Sleep -Seconds 1
 
     
+    
     if (!(Test-Connection -ComputerName $printServer -Quiet -Count 1)) {
         Update-Field -ControlName Exception_Text -SyncHash $syncHash -Value "Target print server $PrintServer is offline" -Property Text
     }
     else {
+    $configHash.PortList = [System.Collections.ArrayList]::New()
         try {
-            [array]$portList = (Get-PrinterPort -ComputerName $PrintServer -ErrorAction Stop | Where-Object {$_.Description -eq 'Standard TCP/IP Port'} | Sort-Object Name).Name
-            Update-Field -ControlName Port_Sel -SyncHash $syncHash -Value $portList -Property ItemsSource
+            
+            [array]$portList  = Get-PrinterPort -ComputerName $PrintServer -ErrorAction Stop | Where-Object {$_.Description -eq 'Standard TCP/IP Port'} | Sort-Object Name
+            [array]$printList = Get-Printer -ComputerName $PrintServer -ErrorAction Stop | Select-Object Name, PortName
+            foreach ($port in $portList) {
+                $configHash.PortList.Add([PSCustomObject]@{
+                    PortName = $port.Name
+                    Printer  = $printList | Where-Object {$_.PortName -eq $port.Name} | Select-Object -ExpandProperty Name -ErrorAction SilentlyContinue
+                }) | Out-Null
+            }
+                
+            Update-Field -ControlName Port_Sel -SyncHash $syncHash -Value ([array]$configHash.portList.PortName) -Property ItemsSource
         }
         catch {
             Update-Field -ControlName Exception_Text -SyncHash $syncHash -Value $_ -Property Text           
@@ -842,13 +857,22 @@ function Add-PrintServerPort {
     param ($PrintConfig) 
     
     Update-Field -ControlName Port_Progress -SyncHash $syncHash -Value Visible -Property Visibility
-    Start-Sleep -Seconds 1
+
+    if (!$syncHash.Port_Sel.HasItems) {  Get-PortList -PrintServer $PrintConfig.PrintServer }
+
     try {     
-        if ($syncHash.Port_Sel.Items -contains $printConfig.PrinterIP) { Update-Field -ControlName Port_Duplicate -SyncHash $syncHash -Value Visible -Property Visibility }
+        if ($syncHash.Port_Sel.Items -contains $printConfig.PrinterIP) { 
+            Update-Field -ControlName Port_Sel -SyncHash $syncHash -Value $printConfig.PrinterIP -Property SelectedItem 
+            Get-DuplicatePort
+        }
         else {
             $return = (cscript c:\Windows\System32\Printing_Admin_Scripts\en-US\prnport.vbs -a -r $printConfig.PrinterIP -h $printConfig.PrinterIP -s $printConfig.PrintServer) | Select-Object -Skip 3 -ErrorAction SilentlyContinue
-            if ($return -and $return[0] -notlike "Created/updated port*") {
+            if ($return -and $return -notlike "*Created/updated port*") {
                 Update-Field -ControlName Exception_Text -SyncHash $syncHash -Value $return -Property Text
+            }
+            else {
+              Update-Field -ControlName Port_Sel -SyncHash $syncHash -Value $printConfig.PrinterIP -Property SelectedItem 
+              Get-DuplicatePort
             }
         }
 
@@ -856,8 +880,10 @@ function Add-PrintServerPort {
     }
     catch {
          Update-Field -ControlName Exception_Text -SyncHash $syncHash -Value 'Port list update failed' -Property Text
-         Update-Field -ControlName Port_Progress -SyncHash $syncHash -Value Collapsed -Property Visibility
+         
    }
+
+   Update-Field -ControlName Port_Progress -SyncHash $syncHash -Value Collapsed -Property Visibility
 }
 
 function Get-DriverList {
@@ -873,7 +899,7 @@ function Get-DriverList {
 
         try {
             [array]$driverList = (Get-PrinterDriver -ComputerName $PrintServer | Where-Object {$_.Manufacturer -ne 'Microsoft'} | Sort-Object Name).Name
-            Update-Field -ControlName Driver_Sel -SyncHash $syncHash -Value $driverList -Property ItemsSource
+            Update-Field -ControlName Driver_Sel -SyncHash $syncHash -Value ([array]$driverList) -Property ItemsSource
         }
         catch {
              Update-Field -ControlName Exception_Text -SyncHash $syncHash -Value 'Driver list update failed' -Property Text             
@@ -906,11 +932,58 @@ function Reset-Tool {
     $syncHash.Prop_Wrap.Children | ForEach-Object {$_.Clear()}
 
     # Reset checkbox defaults
-    ($syncHash.Prop_ServerSpool, $syncHash.Prop_SNMP, $syncHash.Prop_PublishAD) | ForEach-Object {$_.IsChecked = $true}
+    ($syncHash.Prop_ServerSpool, $syncHash.Prop_PublishAD) | ForEach-Object {$_.IsChecked = $true}
     ($syncHash.Prop_URL, $syncHash.DHCP_Static) | ForEach-Object {$_.IsChecked = $false}
 
     # Reset printer sel boxes
     $syncHash.PrintServer_Sel.SelectedValue = $null
     $syncHash.Port_Sel.SelectedValue = $null
     $syncHash.Driver_Sel.SelectedValue = $null
+    $syncHash.Port_InUseName.Text = $null
+
+    Update-Field -ControlName Main_Result -SyncHash $syncHash -Property Text 
+}
+
+function Get-DuplicatePort {
+    if ($syncHash.Port_Sel.SelectedValue) {
+        if ($dupPort = ($configHash.PortList | Where-Object {$_.PortName -eq $syncHash.Port_Sel.SelectedValue}).Printer) {
+            Update-Field -ControlName Port_InUseName -SyncHash $syncHash -Value $dupPort -Property Text
+        }
+        else {
+            Update-Field -ControlName Port_InUseName -SyncHash $syncHash -Property Text
+        }
+    }
+}
+
+
+
+function Add-PrinterToServer {
+param ($PrintSettings) 
+
+    try {     
+        $addPrintSettings = @{
+            ComputerName  = $PrintSettings.PrintServer
+            Name          = $SyncHash.Prop_Name.Text
+            Location      = $SyncHash.Prop_Location.Text
+            Driver        = $PrintSettings.PrinterDriver
+            PortName      = $PrintSettings.PrinterPortName
+            Published     = $printSettings.PropPublishADDS
+            Shared        = $true
+            ShareName     = $SyncHash.Prop_Name.Text
+            RenderingMode = if ($printSettings.PropServerSpool) {'SSR'} else {'CSR'}
+            Comment       = if ($PrintSettings.PropAppendEWS -and $PrintSettings.PrinterURL) { $PrintSettings.PropComments + "--" + $PrintSettings.PrinterURL }
+                            else {$PrintSettings.PropComments}
+        }
+
+        Add-Printer @addPrintSettings
+        Update-Field -ControlName  Main_Result -SyncHash $syncHash -Value "Action successful!" -Property Text 
+
+    }
+
+    catch {  Update-Field -ControlName Exception_Text -SyncHash $syncHash -Value "Error adding printer: $_" -Property Text 
+            Update-Field -ControlName  Main_Result -SyncHash $syncHash -Value "Action failed!" -Property Text 
+         }
+    
+
+ 
 }

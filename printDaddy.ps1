@@ -2,7 +2,7 @@
 Copy-Item -Path "\\labtop\repos\Base\MainWindow.xaml" -Destination "C:\PrintDaddy\Window.xaml" -Force
 Remove-Variable * -ErrorAction SilentlyContinue
 $ErrorActionPreference = 'Continue'
-$printerList = @('lab10')
+
 if ($host.name -eq 'ConsoleHost') {
 
     $SW_HIDE, $SW_SHOW = 0, 5
@@ -25,11 +25,13 @@ Reset-PrintConfig -ConfigHash $configHash
 Set-WPFControls -XAMLPath  (Join-Path $global:baseConfigPath -ChildPath Window.xaml) -TargetHash $syncHash    
 'Window' | Set-RSDataContext -SyncHash $syncHash -DataContext $configHash.printerSettings
 
-$syncHash.PrintServer_Sel.ItemsSource = $printerList
+$configHash.printServList = Get-Content (Join-Path $baseConfigPath -ChildPath 'printsrvlist.json') | ConvertFrom-Json
+$syncHash.PrintServer_Sel.ItemsSource = $configHash.printServList
+
 #region Find_Items
 
 $syncHash.Find_StartFind.Add_Click({
-[void]$global:RSJobCleanup.PowerShell.Runspace.Dispose()
+if ($global:RSJobCleanup) {[void]$global:RSJobCleanup.PowerShell.Runspace.Dispose()}
 New-RS -ScriptBlock {Find-PrinterInfo -PrinterConfig $configHash.printerSettings[0]} -RunspaceName UpdatePrintInfo
 })
 
@@ -65,6 +67,15 @@ $syncHash.DHCP_ReserveLease.Add_Click({
 
 #endregion
 
+#region Print_Server
+$syncHash.PrintServer_Sel.Add_SelectionChanged({
+$syncHash.Port_Sel.ItemsSource = $null
+$syncHash.Driver_Sel.ItemsSource = $null
+$syncHash.Port_InUseName.Text = $null
+})
+
+#endregion
+
 #region Port_Items
 $syncHash.Port_GetList.Add_Click({
 New-RS -ScriptBlock { Get-PortList -PrintServer $configHash.printerSettings[0].PrintServer } -RunspaceName GetPrinterPortList
@@ -73,6 +84,9 @@ New-RS -ScriptBlock { Get-PortList -PrintServer $configHash.printerSettings[0].P
 $syncHash.Port_Add.Add_Click({
 New-RS -ScriptBlock { Add-PrintServerPort -PrintConfig $configHash.printerSettings[0] } -RunspaceName AddPrinterPort
 })
+
+$syncHash.Port_Sel.Add_SelectionChanged({ Get-DuplicatePort })
+
 #endRegion
 
 #region Driver_Items
@@ -89,7 +103,11 @@ New-RS -ScriptBlock { Add-PrintDriver -PrintServer $configHash.printerSettings[0
 
 #region Prop_items
 
+$syncHash.Prop_Name.Add_TextChanged({
+    if ($syncHash.Prop_Name.Text -in $configHash.PortList.Printer) {  Update-Field -ControlName Prop_NameDuplicate -SyncHash $syncHash -Value 'Visible' -Property 'Visibility' }
+    else { Update-Field -ControlName Prop_NameDuplicate -SyncHash $syncHash -Value 'Collapsed' -Property 'Visibility' }
 
+})
 
 [System.Windows.RoutedEventHandler]$nameTextChangeEvent = {
     $props = $configHash.printerSettings[0]
@@ -106,7 +124,7 @@ $syncHash.Prop_Department.AddHandler([System.Windows.Controls.TextBox]::TextChan
 [System.Windows.RoutedEventHandler]$locationTextChangeEvent = {
     $string = [string]::Empty
     @('Prop_Campus', 'Prop_Building', 'Prop_Room') | ForEach-Object {
-        if (![string]::IsNullOrWhiteSpace($syncHash.$_.Text)) {$string = $string + "$($_ -replace 'Prop_'): $($syncHash.$_.Text) "}
+        if (![string]::IsNullOrWhiteSpace($syncHash.$_.Text)) {$string = $string + "$($_ -replace 'Prop_' -replace 'Building','Bldg' -replace 'Room','Rm'): $($syncHash.$_.Text) "}
     }
     $syncHash.Prop_Location.Text = $string.Trim()
 }
@@ -143,5 +161,10 @@ $syncHash.Main_Reset.Add_Click({
     Reset-Tool
 })
 
+$syncHash.Main_Add.Add_Click({ Add-PrinterToServer -PrintSettings $configHash.printerSettings[0]})
+
+$syncHash.Main_OpenPrintMgmt.Add_Click({
+& printmanagement.msc
+})
 #endregion
 $syncHash.Window.ShowDialog()
