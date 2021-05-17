@@ -5,4 +5,4 @@ Using the IP address of a network connected printer, runs through the steps of a
 
 Requires RSAT.
 
-![Alt text](web/psadd.png "PS ADD Overview")
+![Alt text](web/psPrintAdd.PNG "PS ADD Overview")
