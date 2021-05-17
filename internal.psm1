@@ -16,24 +16,27 @@
     catch { Write-Warning -Message "Unable to parse XML, with error: $($Error[0])" }
 
     ## Load each named control into PS hashtable
-    foreach ($controlName in ($XAML.SelectNodes('//*[@Name]').Name)) { $TargetHash.$controlName = $TargetHash.Window.FindName($controlName) }
+   foreach ($controlName in ($XAML.SelectNodes('//*[@Name]').Name)) { $TargetHash.$controlName = $TargetHash.Window.FindName($controlName) }
 
 }
 
 function Set-Tag {
-    [CmdletBinding()]
+ [CmdletBinding()]
     Param ( 
         [Parameter(Mandatory, ValueFromPipeline)][String]$ControlName,
         [Parameter(Mandatory)][Hashtable]$SyncHash,
         [String]$Tag   
     )
     
+
     Process {
-        $SyncHash.Window.Dispatcher.invoke([action] { $SyncHash.$controlName.Tag = $Tag })
+    $SyncHash.Window.Dispatcher.invoke([action] { $SyncHash.$controlName.Tag = $Tag })
     }
 }
 
 function New-HashTables {
+
+
     # Stores WPF controls
     $global:syncHash = [hashtable]::Synchronized(@{ })
 
@@ -42,8 +45,28 @@ function New-HashTables {
 
 }
 
+
+function Start-RS {
+  param(
+    [ScriptBlock]$ScriptBlock = { },
+    [HashTable] $Variables = @{ } 
+  )
+  
+  $rs = ([RunspaceFactory]::CreateRunspace()).Open()
+  
+  $ps = [powershell]::Create()
+  $ps.Runspace = $rs
+      
+  [void]$ps.AddScript($ScriptBlock)
+  
+  ForEach ($Variable in $Variables.GetEnumerator()) { $ps.AddParameter($Variable.Name, $Variable.Value) | Out-Null }
+
+  $ps.BeginInvoke()
+  
+}
+
 function Reset-PrintConfig {
-    [CmdletBinding()]
+ [CmdletBinding()]
     Param ( 
         [Parameter(Mandatory)][Hashtable]$ConfigHash 
     )
@@ -51,29 +74,29 @@ function Reset-PrintConfig {
     $configHash.printerSettings = New-Object -TypeName System.Collections.ObjectModel.ObservableCollection[Object]
 
     [void]$configHash.printerSettings.Add([PSCustomObject]@{
-            PrinterOnline   = $null
-            PrinterIP       = $null
-            PrinterModel    = 'Unknown'
-            PrinterURL      = 'Unknown'
-            PrinterLease    = $null
-            PrinterDHCP     = $null
-            PrinterReserved = $null
-            DHCPScopeID     = $null
-            PrinterMAC      = $null
-            PrintServer     = $null
-            PrinterPortName = $null
-            PrinterDriver   = $null
-            PropCampus      = $null
-            PropBuilding    = $null
-            PropRoom        = $null
-            PropDepartment  = $null
-            PropName        = $null
-            PropLocation    = $null
-            PropComments    = $null
-            PropPublishADDS = $true
-            PropServerSpool = $true
-            PropAppendEWS   = $false
-        })
+        PrinterOnline   = $null
+        PrinterIP       = $null
+        PrinterModel    = 'Unknown'
+        PrinterURL      = 'Unknown'
+        PrinterLease    = $null
+        PrinterDHCP     = $null
+        PrinterReserved = $null
+        DHCPScopeID     = $null
+        PrinterMAC      = $null
+        PrintServer     = $null
+        PrinterPortName = $null
+        PrinterDriver   = $null
+        PropCampus      = $null
+        PropBuilding    = $null
+        PropRoom        = $null
+        PropDepartment  = $null
+        PropName        = $null
+        PropLocation    = $null
+        PropComments    = $null
+        PropPublishADDS = $true
+        PropServerSpool = $true
+        PropAppendEWS   = $false
+    })
 }
 
 function Update-Field {
@@ -84,12 +107,14 @@ function Update-Field {
         $Value,
         [Parameter(Mandatory)][String]$Property
     )
-    $SyncHash.Window.Dispatcher.invoke([action] { process { $SyncHash.$controlName.$Property = $value } })
-}
+
+    $SyncHash.Window.Dispatcher.invoke([action] { process {$SyncHash.$controlName.$Property = $value }})}
+
+
 function Find-PrinterInfo {
     [CmdletBinding()]
     Param ( 
-        [Parameter(Mandatory, ValueFromPipeline)]$PrinterConfig)
+    [Parameter(Mandatory, ValueFromPipeline)]$PrinterConfig)
     
     Update-Field -controlName Find_Progress -SyncHash $syncHash -Value Visible -Property Visibility
     Update-Field -controlName Find_Model -SyncHash $syncHash -Value 'Unknown' -Property Text
@@ -104,28 +129,25 @@ function Find-PrinterInfo {
         #$PrinterConfig.PrinterOnline = 'Online'
         Update-Field -controlName Find_Connectivity -SyncHash $syncHash -Value Online -Property Text
         try {
-            $uri = "http:\\$($PrinterConfig.PrinterIP)"
-            $site = (Invoke-WebRequest -Uri $uri -ErrorAction Stop)
-            $siteTitle = $site.ParsedHtml.Title
+        $uri = "http:\\$($PrinterConfig.PrinterIP)"
+        $site = (Invoke-WebRequest -Uri $uri -ErrorAction Stop)
+        $siteTitle = $site.ParsedHtml.Title
 
-            # Check for Ricoh printers
-            if ($siteTitle -match 'Web Image Monitor') {
-                $ricohUri = "http://$($PrinterConfig.PrinterIP)/web/guest/en/websys/webArch/header.cgi"   
-                $siteTitle = ('Ricoh ' + ((Invoke-WebRequest -Uri $ricohUri -ErrorAction SilentlyContinue).ParsedHtml.body.outerText -split "`n")[1]).Trim()
-            }
-
-            # Check for Dell
-            elseif ($siteTitle -like $null) {
-                $dellUri = "http://$($PrinterConfig.PrinterIP)/frametop.htm"
-                $siteTitle = (Invoke-WebRequest -Uri $dellUri -ErrorAction SilentlyContinue).ParsedHtml.Title
-            }
-
-            if ($siteTitle) {
-                $siteTitle = $siteTitle -replace '\d{1,3}(\.\d{1,3}){3}' -replace 'Aficio' -replace 'LaserJet' -replace 'Laser' -replace 'Color' -replace '\s+', ' '
-                Update-Field -controlName Find_Model -SyncHash $syncHash -Value $siteTitle -Property Text 
-            } 
-            if (![string]::IsNullOrEmpty($uri -replace 'http:\\')) { Update-Field -controlName Find_PrinterURL -SyncHash $syncHash -Property NavigateUri -Value $uri } 
+        # Check for Ricoh printers
+        if ($siteTitle -match 'Web Image Monitor') {
+            $ricohUri = "http://$($PrinterConfig.PrinterIP)/web/guest/en/websys/webArch/header.cgi"   
+            $siteTitle = ('Ricoh ' + ((Invoke-WebRequest -Uri $ricohUri -ErrorAction SilentlyContinue).ParsedHtml.body.outerText -split "`n")[1]).Trim()
         }
+
+        # Check for Dell
+        elseif ($siteTitle -like $null) {
+            $dellUri = "http://$($PrinterConfig.PrinterIP)/frametop.htm"
+            $siteTitle = (Invoke-WebRequest -Uri $dellUri -ErrorAction SilentlyContinue).ParsedHtml.Title
+        }
+
+        if ($siteTitle) { Update-Field -controlName Find_Model -SyncHash $syncHash -Value $siteTitle -Property Text } 
+        if (![string]::IsNullOrEmpty($uri -replace 'http:\\')) {Update-Field -controlName Find_PrinterURL -SyncHash $syncHash -Property NavigateUri -Value $uri} 
+    }
 
         catch { 
             
@@ -136,7 +158,7 @@ function Find-PrinterInfo {
 
     else { Update-Field -controlName Find_Connectivity -SyncHash $syncHash -Value Offline -Property Text }
 
-    Update-Field -controlName Find_Progress -SyncHash $syncHash -Value Collapsed -Property Visibility
+     Update-Field -controlName Find_Progress -SyncHash $syncHash -Value Collapsed -Property Visibility
     
 }
 
@@ -157,16 +179,16 @@ function Set-RSDataContext {
 function New-RS {
     [CmdletBinding()]
     Param (
-        [Parameter(Mandatory = $True)]
+        [Parameter(Mandatory=$True)]
         [string]$RunspaceName,
 
-        [Parameter(Mandatory = $True)]
+        [Parameter(Mandatory=$True)]
         [scriptblock]$ScriptBlock,
 
-        [Parameter(Mandatory = $False)]
+        [Parameter(Mandatory=$False)]
         [switch]$MirrorCurrentEnv = $True,
 
-        [Parameter(Mandatory = $False)]
+        [Parameter(Mandatory=$False)]
         [switch]$Wait
     )
 
@@ -175,14 +197,14 @@ function New-RS {
     function NewUniqueString {
         [CmdletBinding()]
         Param(
-            [Parameter(Mandatory = $False)]
+            [Parameter(Mandatory=$False)]
             [string[]]$ArrayOfStrings,
     
-            [Parameter(Mandatory = $True)]
+            [Parameter(Mandatory=$True)]
             [string]$PossibleNewUniqueString
         )
     
-        if (!$ArrayOfStrings -or $ArrayOfStrings.Count -eq 0 -or ![bool]$($ArrayOfStrings -match '[\w]')) {
+        if (!$ArrayOfStrings -or $ArrayOfStrings.Count -eq 0 -or ![bool]$($ArrayOfStrings -match "[\w]")) {
             $PossibleNewUniqueString
         }
         else {
@@ -204,9 +226,9 @@ function New-RS {
 
     # Create Global Variable Names that don't conflict with other exisiting Global Variables
     $ExistingGlobalVariables = Get-Variable -Scope Global
-    $DesiredGlobalVariables = @('RSSyncHash', 'RSJobCleanup', 'RSJobs')
+    $DesiredGlobalVariables = @("RSSyncHash","RSJobCleanup","RSJobs")
     if ($ExistingGlobalVariables.Name -notcontains 'RSSyncHash') {
-        $GlobalRSSyncHashName = NewUniqueString -PossibleNewUniqueString 'RSSyncHash' -ArrayOfStrings $ExistingGlobalVariables.Name
+        $GlobalRSSyncHashName = NewUniqueString -PossibleNewUniqueString "RSSyncHash" -ArrayOfStrings $ExistingGlobalVariables.Name
         Invoke-Expression "`$global:$GlobalRSSyncHashName = [hashtable]::Synchronized(@{})"
         $globalRSSyncHash = Get-Variable -Name $GlobalRSSyncHashName -Scope Global -ValueOnly
     }
@@ -225,7 +247,7 @@ function New-RS {
         $globalRSSyncHash = $global:RSSyncHash
     }
     if ($ExistingGlobalVariables.Name -notcontains 'RSJobCleanup') {
-        $GlobalRSJobCleanupName = NewUniqueString -PossibleNewUniqueString 'RSJobCleanup' -ArrayOfStrings $ExistingGlobalVariables.Name
+        $GlobalRSJobCleanupName = NewUniqueString -PossibleNewUniqueString "RSJobCleanup" -ArrayOfStrings $ExistingGlobalVariables.Name
         Invoke-Expression "`$global:$GlobalRSJobCleanupName = [hashtable]::Synchronized(@{})"
         $globalRSJobCleanup = Get-Variable -Name $GlobalRSJobCleanupName -Scope Global -ValueOnly
     }
@@ -234,7 +256,7 @@ function New-RS {
         $globalRSJobCleanup = $global:RSJobCleanup
     }
     if ($ExistingGlobalVariables.Name -notcontains 'RSJobs') {
-        $GlobalRSJobsName = NewUniqueString -PossibleNewUniqueString 'RSJobs' -ArrayOfStrings $ExistingGlobalVariables.Name
+        $GlobalRSJobsName = NewUniqueString -PossibleNewUniqueString "RSJobs" -ArrayOfStrings $ExistingGlobalVariables.Name
         Invoke-Expression "`$global:$GlobalRSJobsName = [System.Collections.ArrayList]::Synchronized([System.Collections.ArrayList]::new())"
         $globalRSJobs = Get-Variable -Name $GlobalRSJobsName -Scope Global -ValueOnly
     }
@@ -242,7 +264,7 @@ function New-RS {
         $GlobalRSJobsName = 'RSJobs'
         $globalRSJobs = $global:RSJobs
     }
-    $GlobalVariables = @($GlobalSyncHashName, $GlobalRSJobCleanupName, $GlobalRSJobsName)
+    $GlobalVariables = @($GlobalSyncHashName,$GlobalRSJobCleanupName,$GlobalRSJobsName)
     #Write-Host "Global Variable names are: $($GlobalVariables -join ", ")"
 
     # Prep an empty pscustomobject for the RunspaceNameResult Key in $globalRSSyncHash
@@ -258,79 +280,79 @@ function New-RS {
     if ($ExistingGlobalVariables.Name -notcontains 'RSJobCleanup') {
         #Write-Host '$global:RSJobCleanup does NOT already exists. Creating New Runspace Manager Runspace...'
         $RunspaceMgrRunspace = [runspacefactory]::CreateRunspace()
-        if ($PSVersionTable.PSEdition -ne 'Core') {
-            $RunspaceMgrRunspace.ApartmentState = 'STA'
+        if ($PSVersionTable.PSEdition -ne "Core") {
+            $RunspaceMgrRunspace.ApartmentState = "STA"
         }
-        $RunspaceMgrRunspace.ThreadOptions = 'ReuseThread'
+        $RunspaceMgrRunspace.ThreadOptions = "ReuseThread"
         $RunspaceMgrRunspace.Open()
 
         # Prepare to Receive the Child Runspace Info to the RunspaceManagerRunspace
-        $RunspaceMgrRunspace.SessionStateProxy.SetVariable('JobCleanup', $globalRSJobCleanup)
-        $RunspaceMgrRunspace.SessionStateProxy.SetVariable('jobs', $globalRSJobs)
-        $RunspaceMgrRunspace.SessionStateProxy.SetVariable('SyncHash', $globalRSSyncHash)
+        $RunspaceMgrRunspace.SessionStateProxy.SetVariable("JobCleanup",$globalRSJobCleanup)
+        $RunspaceMgrRunspace.SessionStateProxy.SetVariable("jobs",$globalRSJobs)
+        $RunspaceMgrRunspace.SessionStateProxy.SetVariable("SyncHash",$globalRSSyncHash)
 
-        $globalRSJobCleanup.PowerShell = [PowerShell]::Create().AddScript( {
+        $globalRSJobCleanup.PowerShell = [PowerShell]::Create().AddScript({
 
-                ##### BEGIN Runspace Manager Runspace Helper Functions #####
+            ##### BEGIN Runspace Manager Runspace Helper Functions #####
 
-                # Load the functions we packed up
-                $FunctionsForSBUse | ForEach-Object { Invoke-Expression $_ }
+            # Load the functions we packed up
+            $FunctionsForSBUse | foreach { Invoke-Expression $_ }
 
-                ##### END Runspace Manager Runspace Helper Functions #####
+            ##### END Runspace Manager Runspace Helper Functions #####
 
-                # Routine to handle completed Runspaces
-                $ProcessedJobRecords = [System.Collections.ArrayList]::new()
-                $SyncHash.ProcessedJobRecords = $ProcessedJobRecords
-                while ($JobCleanup.Flag) {
-                    if ($jobs.Count -gt 0) {
-                        $Counter = 0
-                        foreach ($job in $jobs) { 
-                            if ($ProcessedJobRecords.Runspace.InstanceId.Guid -notcontains $job.Runspace.InstanceId.Guid) {
-                                $job | Export-Clixml "$HOME\job$Counter.xml" -Force
-                                $CollectJobRecordPrep = Import-Clixml -Path "$HOME\job$Counter.xml"
-                                Remove-Item -Path "$HOME\job$Counter.xml" -Force
-                                $null = $ProcessedJobRecords.Add($CollectJobRecordPrep)
-                            }
-
-                            if ($job.AsyncHandle.IsCompleted -or $job.AsyncHandle -eq $null) {
-                                [void]$job.PSInstance.EndInvoke($job.AsyncHandle)
-                                $job.Runspace.Dispose()
-                                $job.PSInstance.Dispose()
-                                $job.AsyncHandle = $null
-                                $job.PSInstance = $null
-                            }
-                            $Counter++
+            # Routine to handle completed Runspaces
+            $ProcessedJobRecords = [System.Collections.ArrayList]::new()
+            $SyncHash.ProcessedJobRecords = $ProcessedJobRecords
+            while ($JobCleanup.Flag) {
+                if ($jobs.Count -gt 0) {
+                    $Counter = 0
+                    foreach($job in $jobs) { 
+                        if ($ProcessedJobRecords.Runspace.InstanceId.Guid -notcontains $job.Runspace.InstanceId.Guid) {
+                            $job | Export-CliXml "$HOME\job$Counter.xml" -Force
+                            $CollectJobRecordPrep = Import-CliXML -Path "$HOME\job$Counter.xml"
+                            Remove-Item -Path "$HOME\job$Counter.xml" -Force
+                            $null = $ProcessedJobRecords.Add($CollectJobRecordPrep)
                         }
 
-                        # Determine if we can have the Runspace Manager Runspace rest
-                        $temparray = $jobs.clone()
-                        $temparray | Where-Object {
-                            $_.AsyncHandle.IsCompleted -or $_.AsyncHandle -eq $null
-                        } | ForEach-Object {
-                            $temparray.remove($_)
+                        if ($job.AsyncHandle.IsCompleted -or $job.AsyncHandle -eq $null) {
+                            [void]$job.PSInstance.EndInvoke($job.AsyncHandle)
+                            $job.Runspace.Dispose()
+                            $job.PSInstance.Dispose()
+                            $job.AsyncHandle = $null
+                            $job.PSInstance = $null
                         }
+                        $Counter++
+                    }
 
-                        <#
+                    # Determine if we can have the Runspace Manager Runspace rest
+                    $temparray = $jobs.clone()
+                    $temparray | Where-Object {
+                        $_.AsyncHandle.IsCompleted -or $_.AsyncHandle -eq $null
+                    } | foreach {
+                        $temparray.remove($_)
+                    }
+
+                    <#
                     if ($temparray.Count -eq 0 -or $temparray.AsyncHandle.IsCompleted -notcontains $False) {
                         $JobCleanup.Flag = $False
                     }
                     #>
 
-                        Start-Sleep -Seconds 5
+                    Start-Sleep -Seconds 5
 
-                        # Optional -
-                        # For realtime updates to a GUI depending on changes in data within the $globalRSSyncHash, use
-                        # a something like the following (replace with $RSSyncHash properties germane to your project)
-                        <#
+                    # Optional -
+                    # For realtime updates to a GUI depending on changes in data within the $globalRSSyncHash, use
+                    # a something like the following (replace with $RSSyncHash properties germane to your project)
+                    <#
                     if ($RSSyncHash.WPFInfoDatagrid.Items.Count -ne 0 -and $($RSSynchash.IPArray.Count -ne 0 -or $RSSynchash.IPArray -ne $null)) {
                         if ($RSSyncHash.WPFInfoDatagrid.Items.Count -ge $RSSynchash.IPArray.Count) {
                             Update-Window -Control $RSSyncHash.WPFInfoPleaseWaitLabel -Property Visibility -Value "Hidden"
                         }
                     }
                     #>
-                    }
-                } 
-            })
+                }
+            } 
+        })
 
         # Start the RunspaceManagerRunspace
         $globalRSJobCleanup.PowerShell.Runspace = $RunspaceMgrRunspace
@@ -343,35 +365,35 @@ function New-RS {
     ##### BEGIN New Generic Runspace #####
 
     $GenericRunspace = [runspacefactory]::CreateRunspace()
-    if ($PSVersionTable.PSEdition -ne 'Core') {
-        $GenericRunspace.ApartmentState = 'STA'
+    if ($PSVersionTable.PSEdition -ne "Core") {
+        $GenericRunspace.ApartmentState = "STA"
     }
-    $GenericRunspace.ThreadOptions = 'ReuseThread'
+    $GenericRunspace.ThreadOptions = "ReuseThread"
     $GenericRunspace.Open()
 
     # Pass the $globalRSSyncHash to the Generic Runspace so it can read/write properties to it and potentially
     # coordinate with other runspaces
-    $GenericRunspace.SessionStateProxy.SetVariable('SyncHash', $globalRSSyncHash)
+    $GenericRunspace.SessionStateProxy.SetVariable("SyncHash",$globalRSSyncHash)
 
     # Pass $globalRSJobCleanup and $globalRSJobs to the Generic Runspace so that the Runspace Manager Runspace can manage it
-    $GenericRunspace.SessionStateProxy.SetVariable('JobCleanup', $globalRSJobCleanup)
-    $GenericRunspace.SessionStateProxy.SetVariable('Jobs', $globalRSJobs)
-    $GenericRunspace.SessionStateProxy.SetVariable('ScriptBlock', $ScriptBlock)
+    $GenericRunspace.SessionStateProxy.SetVariable("JobCleanup",$globalRSJobCleanup)
+    $GenericRunspace.SessionStateProxy.SetVariable("Jobs",$globalRSJobs)
+    $GenericRunspace.SessionStateProxy.SetVariable("ScriptBlock",$ScriptBlock)
 
     # Pass all other notable environment characteristics 
     if ($MirrorCurrentEnv) {
         [System.Collections.ArrayList]$SetEnvStringArray = @()
 
-        $VariablesNotToForward = @('globalRSSyncHash', 'RSSyncHash', 'globalRSJobCleanUp', 'RSJobCleanup',
-            'globalRSJobs', 'RSJobs', 'ExistingGlobalVariables', 'DesiredGlobalVariables', '$GlobalRSSyncHashName',
-            'RSNameOriginal', 'GlobalRSJobCleanupName', 'GlobalRSJobsName', 'GlobalVariables', 'RunspaceMgrRunspace',
-            'GenericRunspace', 'ScriptBlock')
+        $VariablesNotToForward = @('globalRSSyncHash','RSSyncHash','globalRSJobCleanUp','RSJobCleanup',
+        'globalRSJobs','RSJobs','ExistingGlobalVariables','DesiredGlobalVariables','$GlobalRSSyncHashName',
+        'RSNameOriginal','GlobalRSJobCleanupName','GlobalRSJobsName','GlobalVariables','RunspaceMgrRunspace',
+        'GenericRunspace','ScriptBlock')
 
         $Variables = Get-Variable
         foreach ($VarObj in $Variables) {
             if ($VariablesNotToForward -notcontains $VarObj.Name) {
                 try {
-                    $GenericRunspace.SessionStateProxy.SetVariable($VarObj.Name, $VarObj.Value)
+                    $GenericRunspace.SessionStateProxy.SetVariable($VarObj.Name,$VarObj.Value)
                 }
                 catch {
                     Write-Verbose "Skipping `$$($VarObj.Name)..."
@@ -430,8 +452,8 @@ function New-RS {
         $SetModulesPrep = foreach ($ModObj in $Modules) {
             if ($ModulesNotToForward -notcontains $ModObj.Name) {
                 $ModuleManifestFullPath = $(Get-ChildItem -Path $ModObj.ModuleBase -Recurse -File | Where-Object {
-                        $_.Name -eq "$($ModObj.Name).psd1"
-                    }).FullName
+                    $_.Name -eq "$($ModObj.Name).psd1"
+                }).FullName
 
                 $ModStringArray = @(
                     '$tempfile = [IO.Path]::Combine([IO.Path]::GetTempPath(), [IO.Path]::GetRandomFileName())'
@@ -460,7 +482,7 @@ function New-RS {
         $null = $SetEnvStringArray.Add($SetModulesString)
     
         # Set Functions
-        $Functions = Get-ChildItem Function:\ | Where-Object { ![System.String]::IsNullOrWhiteSpace($_.Name) }
+        $Functions = Get-ChildItem Function:\ | Where-Object {![System.String]::IsNullOrWhiteSpace($_.Name)}
         if ($PSBoundParameters['FunctionsToForward'] -and $FunctionsToForward -notcontains '*') {
             $Functions = foreach ($FuncObj in $Functions) {
                 if ($FunctionsToForward -contains $FuncObj.Name) {
@@ -471,7 +493,7 @@ function New-RS {
         $SetFunctionsPrep = foreach ($FuncObj in $Functions) {
             $FunctionText = Invoke-Expression $('@(${Function:' + $FuncObj.Name + '}.Ast.Extent.Text)')
             if ($($FunctionText -split "`n").Count -gt 1) {
-                if ($($FunctionText -split "`n")[0] -match '^function ') {
+                if ($($FunctionText -split "`n")[0] -match "^function ") {
                     if ($($FunctionText -split "`n") -match "^'@") {
                         Write-Warning "Unable to forward function $($FuncObj.Name) due to heredoc string: '@"
                     }
@@ -481,7 +503,7 @@ function New-RS {
                 }
             }
             elseif ($($FunctionText -split "`n").Count -eq 1) {
-                if ($FunctionText -match '^function ') {
+                if ($FunctionText -match "^function ") {
                     'Invoke-Expression ' + "@'`n$FunctionText`n'@"
                 }
             }
@@ -490,57 +512,57 @@ function New-RS {
 
         $null = $SetEnvStringArray.Add($SetFunctionsString)
 
-        $GenericRunspace.SessionStateProxy.SetVariable('SetEnvStringArray', $SetEnvStringArray)
+        $GenericRunspace.SessionStateProxy.SetVariable("SetEnvStringArray",$SetEnvStringArray)
     }
 
     $GenericPSInstance = [powershell]::Create()
 
     # Define the main PowerShell Script that will run the $ScriptBlock
-    $null = $GenericPSInstance.AddScript( {
-            $SyncHash."$RunSpaceName`Result" | Add-Member -Type NoteProperty -Name Done -Value $False
-            $SyncHash."$RunSpaceName`Result" | Add-Member -Type NoteProperty -Name Errors -Value $null
-            $SyncHash."$RunSpaceName`Result" | Add-Member -Type NoteProperty -Name ErrorsDetailed -Value $null
-            $SyncHash."$RunspaceName`Result".Errors = [System.Collections.ArrayList]::new()
-            $SyncHash."$RunspaceName`Result".ErrorsDetailed = [System.Collections.ArrayList]::new()
-            $SyncHash."$RunspaceName`Result" | Add-Member -Type NoteProperty -Name ThisRunspace -Value $($(Get-Runspace)[-1])
-            [System.Collections.ArrayList]$LiveOutput = @()
-            $SyncHash."$RunspaceName`Result" | Add-Member -Type NoteProperty -Name LiveOutput -Value $LiveOutput
+    $null = $GenericPSInstance.AddScript({
+        $SyncHash."$RunSpaceName`Result" | Add-Member -Type NoteProperty -Name Done -Value $False
+        $SyncHash."$RunSpaceName`Result" | Add-Member -Type NoteProperty -Name Errors -Value $null
+        $SyncHash."$RunSpaceName`Result" | Add-Member -Type NoteProperty -Name ErrorsDetailed -Value $null
+        $SyncHash."$RunspaceName`Result".Errors = [System.Collections.ArrayList]::new()
+        $SyncHash."$RunspaceName`Result".ErrorsDetailed = [System.Collections.ArrayList]::new()
+        $SyncHash."$RunspaceName`Result" | Add-Member -Type NoteProperty -Name ThisRunspace -Value $($(Get-Runspace)[-1])
+        [System.Collections.ArrayList]$LiveOutput = @()
+        $SyncHash."$RunspaceName`Result" | Add-Member -Type NoteProperty -Name LiveOutput -Value $LiveOutput
         
 
         
-            ##### BEGIN Generic Runspace Helper Functions #####
+        ##### BEGIN Generic Runspace Helper Functions #####
 
-            # Load the environment we packed up
-            if ($SetEnvStringArray) {
-                foreach ($obj in $SetEnvStringArray) {
-                    if (![string]::IsNullOrWhiteSpace($obj)) {
-                        try {
-                            Invoke-Expression $obj
-                        }
-                        catch {
-                            $null = $SyncHash."$RunSpaceName`Result".Errors.Add($_)
+        # Load the environment we packed up
+        if ($SetEnvStringArray) {
+            foreach ($obj in $SetEnvStringArray) {
+                if (![string]::IsNullOrWhiteSpace($obj)) {
+                    try {
+                        Invoke-Expression $obj
+                    }
+                    catch {
+                        $null = $SyncHash."$RunSpaceName`Result".Errors.Add($_)
 
-                            $ErrMsg = "Problem with:`n$obj`nError Message:`n" + $($_ | Out-String)
-                            $null = $SyncHash."$RunSpaceName`Result".ErrorsDetailed.Add($ErrMsg)
-                        }
+                        $ErrMsg = "Problem with:`n$obj`nError Message:`n" + $($_ | Out-String)
+                        $null = $SyncHash."$RunSpaceName`Result".ErrorsDetailed.Add($ErrMsg)
                     }
                 }
             }
+        }
 
-            ##### END Generic Runspace Helper Functions #####
+        ##### END Generic Runspace Helper Functions #####
 
-            ##### BEGIN Script To Run #####
+        ##### BEGIN Script To Run #####
 
 
-            $Result = Invoke-Expression -Command $ScriptBlock.ToString()
-            $SyncHash."$RunSpaceName`Result" | Add-Member -Type NoteProperty -Name Output -Value $Result
+        $Result = Invoke-Expression -Command $ScriptBlock.ToString()
+        $SyncHash."$RunSpaceName`Result" | Add-Member -Type NoteProperty -Name Output -Value $Result
         
        
 
-            ##### END Script To Run #####
+        ##### END Script To Run #####
 
-            $SyncHash."$RunSpaceName`Result".Done = $True
-        })
+        $SyncHash."$RunSpaceName`Result".Done = $True
+    })
 
     # Start the Generic Runspace
     $GenericPSInstance.Runspace = $GenericRunspace
@@ -548,13 +570,13 @@ function New-RS {
     if ($Wait) {
         # The below will make any output of $GenericRunspace available in $Object in current scope
         $Object = New-Object 'System.Management.Automation.PSDataCollection[psobject]'
-        $GenericAsyncHandle = $GenericPSInstance.BeginInvoke($Object, $Object)
+        $GenericAsyncHandle = $GenericPSInstance.BeginInvoke($Object,$Object)
 
         $GenericRunspaceInfo = [pscustomobject]@{
-            Name        = $RunSpaceName + 'Generic'
-            PSInstance  = $GenericPSInstance
-            Runspace    = $GenericRunspace
-            AsyncHandle = $GenericAsyncHandle
+            Name            = $RunSpaceName + "Generic"
+            PSInstance      = $GenericPSInstance
+            Runspace        = $GenericRunspace
+            AsyncHandle     = $GenericAsyncHandle
         }
         $null = $globalRSJobs.Add($GenericRunspaceInfo)
 
@@ -569,67 +591,69 @@ function New-RS {
     }
     else {
         $HelperRunspace = [runspacefactory]::CreateRunspace()
-        if ($PSVersionTable.PSEdition -ne 'Core') {
-            $HelperRunspace.ApartmentState = 'STA'
+        if ($PSVersionTable.PSEdition -ne "Core") {
+            $HelperRunspace.ApartmentState = "STA"
         }
-        $HelperRunspace.ThreadOptions = 'ReuseThread'
+        $HelperRunspace.ThreadOptions = "ReuseThread"
         $HelperRunspace.Open()
 
         # Pass the $globalRSSyncHash to the Helper Runspace so it can read/write properties to it and potentially
         # coordinate with other runspaces
-        $HelperRunspace.SessionStateProxy.SetVariable('SyncHash', $globalRSSyncHash)
+        $HelperRunspace.SessionStateProxy.SetVariable("SyncHash",$globalRSSyncHash)
 
         # Pass $globalRSJobCleanup and $globalRSJobs to the Helper Runspace so that the Runspace Manager Runspace can manage it
-        $HelperRunspace.SessionStateProxy.SetVariable('JobCleanup', $globalRSJobCleanup)
-        $HelperRunspace.SessionStateProxy.SetVariable('Jobs', $globalRSJobs)
+        $HelperRunspace.SessionStateProxy.SetVariable("JobCleanup",$globalRSJobCleanup)
+        $HelperRunspace.SessionStateProxy.SetVariable("Jobs",$globalRSJobs)
 
         # Set any other needed variables in the $HelperRunspace
-        $HelperRunspace.SessionStateProxy.SetVariable('GenericRunspace', $GenericRunspace)
-        $HelperRunspace.SessionStateProxy.SetVariable('GenericPSInstance', $GenericPSInstance)
-        $HelperRunspace.SessionStateProxy.SetVariable('RunSpaceName', $RunSpaceName)
+        $HelperRunspace.SessionStateProxy.SetVariable("GenericRunspace",$GenericRunspace)
+        $HelperRunspace.SessionStateProxy.SetVariable("GenericPSInstance",$GenericPSInstance)
+        $HelperRunspace.SessionStateProxy.SetVariable("RunSpaceName",$RunSpaceName)
 
         $HelperPSInstance = [powershell]::Create()
 
         # Define the main PowerShell Script that will run the $ScriptBlock
-        $null = $HelperPSInstance.AddScript( {
-                ##### BEGIN Script To Run #####
+        $null = $HelperPSInstance.AddScript({
+            ##### BEGIN Script To Run #####
 
-                # The below will make any output of $GenericRunspace available in $Object in current scope
-                $Object = New-Object 'System.Management.Automation.PSDataCollection[psobject]'
-                $GenericAsyncHandle = $GenericPSInstance.BeginInvoke($Object, $Object)
+            # The below will make any output of $GenericRunspace available in $Object in current scope
+            $Object = New-Object 'System.Management.Automation.PSDataCollection[psobject]'
+            $GenericAsyncHandle = $GenericPSInstance.BeginInvoke($Object,$Object)
 
-                $GenericRunspaceInfo = [pscustomobject]@{
-                    Name        = $RunSpaceName + 'Generic'
-                    PSInstance  = $GenericPSInstance
-                    Runspace    = $GenericRunspace
-                    AsyncHandle = $GenericAsyncHandle
-                }
-                $null = $Jobs.Add($GenericRunspaceInfo)
+            $GenericRunspaceInfo = [pscustomobject]@{
+                Name            = $RunSpaceName + "Generic"
+                PSInstance      = $GenericPSInstance
+                Runspace        = $GenericRunspace
+                AsyncHandle     = $GenericAsyncHandle
+            }
+            $null = $Jobs.Add($GenericRunspaceInfo)
 
-                #while ($SyncHash."$RunSpaceName`Done" -ne $True) {
-                while ($GenericAsyncHandle.IsCompleted -ne $True) {
-                    #Write-Host "Waiting for -ScriptBlock to finish..."
-                    Start-Sleep -Milliseconds 10
-                }
+            #while ($SyncHash."$RunSpaceName`Done" -ne $True) {
+            while ($GenericAsyncHandle.IsCompleted -ne $True) {
+                #Write-Host "Waiting for -ScriptBlock to finish..."
+                Start-Sleep -Milliseconds 10
+            }
 
-                ##### END Script To Run #####
-            })
+            ##### END Script To Run #####
+        })
 
         # Start the Helper Runspace
         $HelperPSInstance.Runspace = $HelperRunspace
         $HelperAsyncHandle = $HelperPSInstance.BeginInvoke()
 
         $HelperRunspaceInfo = [pscustomobject]@{
-            Name        = $RunSpaceName + 'Helper'
-            PSInstance  = $HelperPSInstance
-            Runspace    = $HelperRunspace
-            AsyncHandle = $HelperAsyncHandle
+            Name            = $RunSpaceName + "Helper"
+            PSInstance      = $HelperPSInstance
+            Runspace        = $HelperRunspace
+            AsyncHandle     = $HelperAsyncHandle
         }
         $null = $globalRSJobs.Add($HelperRunspaceInfo)
     }
 
     ##### END Generic Runspace
 }
+
+
 
 function Find-DHCPLease {
     param(
@@ -640,7 +664,7 @@ function Find-DHCPLease {
         Update-Field -ControlName DHCP_Progress -SyncHash $syncHash -Value Visible -Property Visibility
         Update-Field -ControlName DHCP_LeaseFound -SyncHash $syncHash -Property Text -Value No
         Update-Field -ControlName DHCP_Reservation -SyncHash $syncHash -Property Text -Value No
-        Update-Field -ControlName DHCP_Server -SyncHash $syncHash -Property Text -Value Unknown
+        Update-Field -ControlName DHCP_Server  -SyncHash $syncHash -Property Text  -Value Unknown
 
 
         function IPInRange {
@@ -758,12 +782,12 @@ function Find-DHCPLease {
         $scope = Resolve-Scope -IPAddress $IPAddress -ScopeList $scopeList 
    
         if ($scope) {
-            $client = Get-DhcpServerv4Lease -ComputerName $scope.DHCPServer -ScopeId $scope.ScopeId | Where-Object { $_.IPAddress -eq $IPAddress } | Select-Object IPAddress, scopeID, ClientID, AddressState, @{Label = 'DHCPServer'; Expression = { $scope.DHCPServer } }         
+            $client = Get-DhcpServerv4Lease -ComputerName $scope.DHCPServer -ScopeId $scope.ScopeId | Where-Object {$_.IPAddress -eq $IPAddress} | Select-Object IPAddress, scopeID, ClientID, AddressState, @{Label = 'DHCPServer'; Expression = { $scope.DHCPServer } }         
 
             if ($client) {
                 if ($client.AddressState -match 'Reservation') { Update-Field -controlName DHCP_Reservation -SyncHash $syncHash -Property Text -Value Yes }
                 Update-Field -controlName DHCP_LeaseFound -SyncHash $syncHash -Property Text -Value Yes
-                Update-Field -controlName DHCP_Server -SyncHash $syncHash -Property Text -Value (($scope.DHCPServer -split '\.')[0])
+                Update-Field -controlName DHCP_Server -SyncHash $syncHash -Property Text -Value $scope.DHCPServer
                 Update-Field -controlName DHCP_ScopeID -SyncHash $syncHash -Property Text -Value $scope.ScopeId
                 Update-Field -controlName DHCP_ClientID -SyncHash $syncHash -Property Text -Value $client.ClientID
                
@@ -777,7 +801,7 @@ function Find-DHCPLease {
 function Add-PrinterIPReservation {
     [CmdletBinding()]
     Param ( 
-        [Parameter(Mandatory, ValueFromPipeline)]$PrinterConfig)
+    [Parameter(Mandatory, ValueFromPipeline)]$PrinterConfig)
 
     Update-Field -ControlName DHCP_Progress -SyncHash $syncHash -Value Visible -Property Visibility
     Start-Sleep -Seconds 1
@@ -785,41 +809,47 @@ function Add-PrinterIPReservation {
         Add-DhcpServerv4Reservation -ComputerName $PrinterConfig.PrinterDHCP -ScopeId $printerConfig.DHCPScopeID -IPAddress $PrinterConfig.PrinterIP -ClientId $printerConfig.PrinterMAC -ErrorAction Stop
         Update-Field -ControlName DHCP_Reservation -SyncHash $syncHash -Value Yes -Property Text
         Update-Field -ControlName DHCP_Progress -SyncHash $syncHash -Value Collapsed -Property Visibility
-    }
+   }
+
     catch {
-        Update-Field -ControlName Exception_Text -SyncHash $syncHash -Value $_ -Property Text
-        Update-Field -ControlName DHCP_Progress -SyncHash $syncHash -Value Collapsed -Property Visibility
+         Update-Field -ControlName Exception_Text -SyncHash $syncHash -Value $_ -Property Text
+         Update-Field -ControlName DHCP_Progress -SyncHash $syncHash -Value Collapsed -Property Visibility
     }
+
+    
+
 }
 
 function Get-PortList {
     param ($PrintServer) 
     
     Update-Field -ControlName Port_Progress -SyncHash $syncHash -Value Visible -Property Visibility
-    Start-Sleep -Seconds 1 
+    Start-Sleep -Seconds 1
+
+    
     
     if (!(Test-Connection -ComputerName $printServer -Quiet -Count 1)) {
         Update-Field -ControlName Exception_Text -SyncHash $syncHash -Value "Target print server $PrintServer is offline" -Property Text
     }
     else {
-        $configHash.PortList = [System.Collections.ArrayList]::New()
+    $configHash.PortList = [System.Collections.ArrayList]::New()
         try {
-            $portList = Get-PrinterPort -ComputerName $PrintServer -ErrorAction SilentlyContinue | Where-Object { $_.Description -eq 'Standard TCP/IP Port' } | Sort-Object Name
-            $printList = Get-Printer -ComputerName $PrintServer -ErrorAction SilentlyContinue | Select-Object Name, PortName
-             
+            
+            [array]$portList  = Get-PrinterPort -ComputerName $PrintServer -ErrorAction Stop | Where-Object {$_.Description -eq 'Standard TCP/IP Port'} | Sort-Object Name
+            [array]$printList = Get-Printer -ComputerName $PrintServer -ErrorAction Stop | Select-Object Name, PortName
             foreach ($port in $portList) {
                 $configHash.PortList.Add([PSCustomObject]@{
-                        PortName = $port.Name
-                        Printer  = $printList | Where-Object { $_.PortName -eq $port.Name } | Select-Object -ExpandProperty Name -ErrorAction SilentlyContinue
-                    }) | Out-Null
+                    PortName = $port.Name
+                    Printer  = $printList | Where-Object {$_.PortName -eq $port.Name} | Select-Object -ExpandProperty Name -ErrorAction SilentlyContinue
+                }) | Out-Null
             }
                 
             Update-Field -ControlName Port_Sel -SyncHash $syncHash -Value ([array]$configHash.portList.PortName) -Property ItemsSource
         }
         catch {
             Update-Field -ControlName Exception_Text -SyncHash $syncHash -Value $_ -Property Text           
-        }
-    }
+       }
+   }
     Update-Field -ControlName Port_Progress -SyncHash $syncHash -Value Collapsed -Property Visibility
 }
 
@@ -828,7 +858,7 @@ function Add-PrintServerPort {
     
     Update-Field -ControlName Port_Progress -SyncHash $syncHash -Value Visible -Property Visibility
 
-    if (!$syncHash.Port_Sel.HasItems) { Get-PortList -PrintServer $PrintConfig.PrintServer }
+    if (!$syncHash.Port_Sel.HasItems) {  Get-PortList -PrintServer $PrintConfig.PrintServer }
 
     try {     
         if ($syncHash.Port_Sel.Items -contains $printConfig.PrinterIP) { 
@@ -837,23 +867,23 @@ function Add-PrintServerPort {
         }
         else {
             $return = (cscript c:\Windows\System32\Printing_Admin_Scripts\en-US\prnport.vbs -a -r $printConfig.PrinterIP -h $printConfig.PrinterIP -s $printConfig.PrintServer) | Select-Object -Skip 3 -ErrorAction SilentlyContinue
-            if ($return -and $return -notlike '*Created/updated port*') {
+            if ($return -and $return -notlike "*Created/updated port*") {
                 Update-Field -ControlName Exception_Text -SyncHash $syncHash -Value $return -Property Text
             }
             else {
-                Update-Field -ControlName Port_Sel -SyncHash $syncHash -Value $printConfig.PrinterIP -Property SelectedItem 
-                Get-DuplicatePort
+              Update-Field -ControlName Port_Sel -SyncHash $syncHash -Value $printConfig.PrinterIP -Property SelectedItem 
+              Get-DuplicatePort
             }
         }
 
-        Get-PortList -PrintServer $PrintConfig.PrintServer
+       Get-PortList -PrintServer $PrintConfig.PrintServer
     }
     catch {
-        Update-Field -ControlName Exception_Text -SyncHash $syncHash -Value 'Port list update failed' -Property Text
+         Update-Field -ControlName Exception_Text -SyncHash $syncHash -Value 'Port list update failed' -Property Text
          
-    }
+   }
 
-    Update-Field -ControlName Port_Progress -SyncHash $syncHash -Value Collapsed -Property Visibility
+   Update-Field -ControlName Port_Progress -SyncHash $syncHash -Value Collapsed -Property Visibility
 }
 
 function Get-DriverList {
@@ -868,12 +898,12 @@ function Get-DriverList {
     else {
 
         try {
-            [array]$driverList = (Get-PrinterDriver -ComputerName $PrintServer | Where-Object { $_.Manufacturer -ne 'Microsoft' } | Sort-Object Name).Name
+            [array]$driverList = (Get-PrinterDriver -ComputerName $PrintServer | Where-Object {$_.Manufacturer -ne 'Microsoft'} | Sort-Object Name).Name
             Update-Field -ControlName Driver_Sel -SyncHash $syncHash -Value ([array]$driverList) -Property ItemsSource
         }
         catch {
-            Update-Field -ControlName Exception_Text -SyncHash $syncHash -Value 'Driver list update failed' -Property Text             
-        }      
+             Update-Field -ControlName Exception_Text -SyncHash $syncHash -Value 'Driver list update failed' -Property Text             
+       }      
     }
     Update-Field -ControlName Driver_Progress -SyncHash $syncHash -Value Collapsed -Property Visibility
 }
@@ -888,22 +918,22 @@ function Add-PrintDriver {
         Get-DriverList -PrintServer $PrintServer
     }
     catch {
-        Update-Field -ControlName Exception_Text -SyncHash $syncHash -Value $_ -Property Text
-        Update-Field -ControlName Driver_Progress -SyncHash $syncHash -Value Collapsed -Property Visibility
-    }
+         Update-Field -ControlName Exception_Text -SyncHash $syncHash -Value $_ -Property Text
+         Update-Field -ControlName Driver_Progress -SyncHash $syncHash -Value Collapsed -Property Visibility
+   }
 }
 
 function Reset-Tool {
 
     # Reset IP derived settings
-    @('DHCP_Server', 'DHCP_Reservation', 'DHCP_LeaseFound', 'Find_Connectivity' ) | ForEach-Object { Update-Field -SyncHash $syncHash -Property Text -ControlName $_ }
+     @('DHCP_Server', 'DHCP_Reservation', 'DHCP_LeaseFound', 'Find_Connectivity' ) | ForEach-Object {Update-Field -SyncHash $syncHash -Property Text -ControlName $_}
 
     # Reset entered properties
-    $syncHash.Prop_Wrap.Children | ForEach-Object { $_.Clear() }
+    $syncHash.Prop_Wrap.Children | ForEach-Object {$_.Clear()}
 
     # Reset checkbox defaults
-    ($syncHash.Prop_ServerSpool, $syncHash.Prop_PublishAD) | ForEach-Object { $_.IsChecked = $true }
-    ($syncHash.Prop_URL, $syncHash.DHCP_Static) | ForEach-Object { $_.IsChecked = $false }
+    ($syncHash.Prop_ServerSpool, $syncHash.Prop_PublishAD) | ForEach-Object {$_.IsChecked = $true}
+    ($syncHash.Prop_URL, $syncHash.DHCP_Static) | ForEach-Object {$_.IsChecked = $false}
 
     # Reset printer sel boxes
     $syncHash.PrintServer_Sel.SelectedValue = $null
@@ -912,14 +942,11 @@ function Reset-Tool {
     $syncHash.Port_InUseName.Text = $null
 
     Update-Field -ControlName Main_Result -SyncHash $syncHash -Property Text 
-    Reset-PrintConfig -ConfigHash $configHash
-
-    'Window' | Set-RSDataContext -SyncHash $syncHash -DataContext $configHash.printerSettings
 }
 
 function Get-DuplicatePort {
     if ($syncHash.Port_Sel.SelectedValue) {
-        if ($dupPort = ($configHash.PortList | Where-Object { $_.PortName -eq $syncHash.Port_Sel.SelectedValue }).Printer) {
+        if ($dupPort = ($configHash.PortList | Where-Object {$_.PortName -eq $syncHash.Port_Sel.SelectedValue}).Printer) {
             Update-Field -ControlName Port_InUseName -SyncHash $syncHash -Value $dupPort -Property Text
         }
         else {
@@ -928,17 +955,35 @@ function Get-DuplicatePort {
     }
 }
 
+
+
 function Add-PrinterToServer {
-    param ($PrintSettings) 
+param ($PrintSettings) 
 
     try {     
-        Add-Printer @PrintSettings
-        Update-Field -ControlName Main_Result -SyncHash $syncHash -Value 'Action successful!' -Property Text 
+        $addPrintSettings = @{
+            ComputerName  = $PrintSettings.PrintServer
+            Name          = $SyncHash.Prop_Name.Text
+            Location      = $SyncHash.Prop_Location.Text
+            Driver        = $PrintSettings.PrinterDriver
+            PortName      = $PrintSettings.PrinterPortName
+            Published     = $printSettings.PropPublishADDS
+            Shared        = $true
+            ShareName     = $SyncHash.Prop_Name.Text
+            RenderingMode = if ($printSettings.PropServerSpool) {'SSR'} else {'CSR'}
+            Comment       = if ($PrintSettings.PropAppendEWS -and $PrintSettings.PrinterURL) { $PrintSettings.PropComments + "--" + $PrintSettings.PrinterURL }
+                            else {$PrintSettings.PropComments}
+        }
+
+        Add-Printer @addPrintSettings
+        Update-Field -ControlName  Main_Result -SyncHash $syncHash -Value "Action successful!" -Property Text 
 
     }
 
-    catch {
-        Update-Field -ControlName Exception_Text -SyncHash $syncHash -Value "Error adding printer: $_" -Property Text 
-        Update-Field -ControlName Main_Result -SyncHash $syncHash -Value 'Action failed!' -Property Text 
-    }
+    catch {  Update-Field -ControlName Exception_Text -SyncHash $syncHash -Value "Error adding printer: $_" -Property Text 
+            Update-Field -ControlName  Main_Result -SyncHash $syncHash -Value "Action failed!" -Property Text 
+         }
+    
+
+ 
 }

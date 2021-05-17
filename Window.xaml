@@ -8,7 +8,7 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:md="http://materialdesigninxaml.net/winfx/xaml/themes"
     xmlns:sys="clr-namespace:System;assembly=mscorlib"
-    Title="The Print Daddy"
+    Title="PS Print Add"
     Width="800"
     Height="600"
     BorderThickness="1.5"
@@ -30,6 +30,7 @@
                 <ResourceDictionary Source="pack://application:,,,/MaterialDesignThemes.Wpf;component/Themes/MaterialDesignTheme.Defaults.xaml" />
                 <ResourceDictionary Source="pack://application:,,,/MahApps.Metro;component/Styles/Controls.xaml" />
                 <ResourceDictionary Source="pack://application:,,,/MahApps.Metro;component/Styles/Themes/Light.Steel.xaml" />
+
             </ResourceDictionary.MergedDictionaries>
             <!--  primary hues  -->
             <SolidColorBrush x:Key="PrimaryHueLightBrush" Color="DimGray" />
@@ -41,15 +42,19 @@
             <!--  accent  -->
             <SolidColorBrush x:Key="SecondaryAccentBrush" Color="#3d3a3a" />
             <SolidColorBrush x:Key="SecondaryAccentForegroundBrush" Color="#3d3a3a" />
+
             <Style x:Key="DefaultGroupBox" BasedOn="{StaticResource MaterialDesignCardGroupBox}" TargetType="GroupBox">
                 <Setter Property="Background" Value="White" />
                 <Setter Property="HorizontalAlignment" Value="Stretch" />
                 <Setter Property="Margin" Value="0,10,0,10" />
                 <Style.Triggers>
                     <Trigger Property="IsEnabled" Value="False">
+
                         <Setter Property="Background">
                             <Setter.Value>
+
                                 <SolidColorBrush Opacity="0.15" Color="#3d3a3a" />
+
                             </Setter.Value>
                         </Setter>
                     </Trigger>
@@ -58,6 +63,7 @@
                     </DataTrigger>
                 </Style.Triggers>
             </Style>
+
             <Style x:Key="PrintGroupBox" BasedOn="{StaticResource DefaultGroupBox}" TargetType="GroupBox">
                 <Setter Property="IsEnabled" Value="{Binding ElementName=PrintServer_Panel, Path=IsEnabled}" />
                 <Style.Triggers>
@@ -69,9 +75,13 @@
                     </DataTrigger>
                 </Style.Triggers>
             </Style>
+
+
             <Style x:Key="SelectionCheckBox" BasedOn="{StaticResource MaterialDesignCheckBox}" TargetType="CheckBox">
                 <Setter Property="FontWeight" Value="Thin" />
+
             </Style>
+
             <Style x:Key="EntryBox" BasedOn="{StaticResource MaterialDesignFilledTextBox}" TargetType="TextBox">
                 <Setter Property="Padding" Value="4,3,4,0" />
                 <Setter Property="Width" Value="180" />
@@ -82,10 +92,13 @@
                 <Setter Property="FontSize" Value="14" />
                 <Setter Property="Margin" Value="5,0,5,0" />
             </Style>
+
+
             <Style x:Key="EntryBoxFields" BasedOn="{StaticResource EntryBox}" TargetType="TextBox">
 
                 <Setter Property="Margin" Value="5,0,5,7.5" />
             </Style>
+
             <Style x:Key="SelectionBox" BasedOn="{StaticResource MaterialDesignFilledComboBox}" TargetType="ComboBox">
                 <Setter Property="Padding" Value="4,3,4,0" />
                 <Setter Property="Width" Value="180" />
@@ -101,6 +114,8 @@
                     </Trigger>
                 </Style.Triggers>
             </Style>
+
+
             <Style x:Key="WideButton" BasedOn="{StaticResource MaterialDesignFlatLightBgButton}" TargetType="Button">
                 <Setter Property="Padding" Value="2.5" />
                 <Setter Property="Width" Value="75" />
@@ -108,7 +123,9 @@
                 <Setter Property="FontSize" Value="9" />
                 <Setter Property="Typography.Capitals" Value="AllSmallCaps" />
                 <Setter Property="HorizontalContentAlignment" Value="Center" />
+
             </Style>
+
             <Style BasedOn="{StaticResource MaterialDesignLinearProgressBar}" TargetType="ProgressBar">
                 <Setter Property="Foreground" Value="White" />
                 <Setter Property="Width" Value="100" />
@@ -124,12 +141,17 @@
             </Style>
         </ResourceDictionary>
     </Window.Resources>
+
+
     <Controls:MetroWindow.RightWindowCommands>
         <Controls:WindowCommands>
+
+
             <Button Name="Main_OpenPrintMgmt" Content="" Style="{StaticResource IconButton}" ToolTip="Open print management snap-in" />
         </Controls:WindowCommands>
     </Controls:MetroWindow.RightWindowCommands>
     <Grid ShowGridLines="False">
+
         <Grid.RowDefinitions>
             <RowDefinition Height="*" />
             <RowDefinition Height="*" />
@@ -175,6 +197,7 @@
                 </DockPanel>
             </md:DialogHost.DialogContent>
         </md:DialogHost>
+
         <Grid Grid.Row="0" Margin="15,0,15,0">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*" />
@@ -276,6 +299,7 @@
                             <Run FontWeight="Bold" Text="Device Information" Typography.Capitals="AllSmallCaps" />
                             <LineBreak />
                             <Run FontWeight="Light" Text="No device found" />
+
                         </TextBlock>
                         <TextBlock>
                             <TextBlock.Style>
@@ -307,6 +331,7 @@
                             </Run>
                             <LineBreak />
                             <Run Text="Model: " />
+
                             <Run Name="Find_Model" FontWeight="Light" Text="{Binding PrinterModel, Mode=TwoWay}">
                                 <Run.Style>
                                     <Style TargetType="Run">
@@ -322,6 +347,7 @@
                                 </Run.Style>
                             </Run>
                             <LineBreak />
+
                             <Hyperlink Name="Find_PrinterURL" NavigateUri="{Binding PrinterURL, Mode=TwoWay}">
                                 <TextBlock Text="Printer EWS">
                                     <TextBlock.Style>
@@ -335,6 +361,7 @@
                                     </TextBlock.Style>
                                 </TextBlock>
                             </Hyperlink>
+
                         </TextBlock>
                     </StackPanel>
                 </StackPanel>
@@ -417,6 +444,7 @@
                             <Run FontWeight="Bold" Text="DHCP Information" Typography.Capitals="AllSmallCaps" />
                             <LineBreak />
                             <Run FontWeight="Thin" Text="Lease not searched" />
+
                         </TextBlock>
                         <TextBlock>
                             <TextBlock.Style>
@@ -442,6 +470,7 @@
                                                 <Setter Property="Foreground" Value="Green" />
                                             </Trigger>
                                         </Style.Triggers>
+
                                     </Style>
                                 </Run.Style>
                             </Run>
@@ -483,6 +512,7 @@
                     <Style BasedOn="{StaticResource DefaultGroupBox}" TargetType="GroupBox">
                         <Setter Property="IsEnabled" Value="False" />
                         <Style.Triggers>
+
                             <DataTrigger Binding="{Binding PrinterReserved}" Value="Yes">
                                 <Setter Property="IsEnabled" Value="True" />
                             </DataTrigger>
@@ -492,11 +522,14 @@
                             <DataTrigger Binding="{Binding ElementName=Main_Result, Path=Visibility}" Value="Visible">
                                 <Setter Property="IsEnabled" Value="False" />
                             </DataTrigger>
+
                         </Style.Triggers>
                     </Style>
                 </GroupBox.Style>
                 <ComboBox Name="PrintServer_Sel" md:HintAssist.Hint="Server List" SelectedValue="{Binding PrintServer}" Style="{StaticResource SelectionBox}" />
+
             </GroupBox>
+
             <GroupBox Name="Port_Panel" Grid.Column="2" Style="{StaticResource PrintGroupBox}">
                 <GroupBox.Header>
                     <DockPanel>
@@ -507,6 +540,7 @@
                 <DockPanel>
                     <StackPanel Margin="0,15,0,0" VerticalAlignment="Center">
                         <ComboBox Name="Port_Sel" md:HintAssist.Hint="Port List" SelectedValue="{Binding PrinterPortName}" Style="{StaticResource SelectionBox}" />
+
                         <TextBlock Name="Port_Duplicate" Margin="6,3,0,-5" Foreground="IndianRed" Text="Port already in use with:">
                             <TextBlock.Style>
                                 <Style TargetType="TextBlock">
@@ -545,6 +579,8 @@
                         FontSize="10"
                         Foreground="White"
                         Style="{StaticResource MaterialDesignFlatLightBgButton}" />
+
+
                 </DockPanel>
             </GroupBox>
             <GroupBox Name="Driver_Panel" Grid.Column="4" Style="{StaticResource PrintGroupBox}">
@@ -552,6 +588,7 @@
                     <DockPanel>
                         <HeaderedContentControl Foreground="White" Header="V. SET PRINTER DRIVER" />
                         <ProgressBar Name="Driver_Progress" />
+
                     </DockPanel>
                 </GroupBox.Header>
                 <DockPanel>
@@ -586,8 +623,11 @@
                         FontSize="10"
                         Foreground="White"
                         Style="{StaticResource MaterialDesignFlatLightBgButton}" />
+
+
                 </DockPanel>
             </GroupBox>
+
         </Grid>
         <Grid Grid.Row="2" Margin="15,0,15,0">
             <GroupBox Name="Prop_Panel" Grid.Column="0" Header="VI. DEFINE PRINTER PROPERTIES" Style="{StaticResource PrintGroupBox}">
@@ -652,6 +692,7 @@
                                     </Style>
                                 </TextBox.Style>
                             </TextBox>
+
                         </DockPanel>
                     </DockPanel>
                     <StackPanel Grid.Column="1" Margin="5,0,0,0" HorizontalAlignment="Left">
@@ -663,6 +704,7 @@
                                 <Style BasedOn="{StaticResource SelectionCheckBox}" TargetType="CheckBox">
                                     <Setter Property="IsChecked" Value="True" />
                                     <Style.Triggers>
+
                                         <DataTrigger Binding="{Binding PrinterModel}" Value="Unknown">
                                             <Setter Property="IsChecked" Value="False" />
                                             <Setter Property="IsEnabled" Value="False" />
@@ -675,8 +717,10 @@
                         <CheckBox Name="Prop_LockLocation" Content="Lock location editing" IsChecked="True" Style="{StaticResource SelectionCheckBox}" />
                     </StackPanel>
                 </Grid>
+
             </GroupBox>
         </Grid>
+
         <DockPanel Grid.Row="3" Margin="0,0,0,10" HorizontalAlignment="Center">
             <Button
                 Name="Main_Add"
@@ -710,6 +754,7 @@
                             <DataTrigger Binding="{Binding ElementName=Prop_NameDuplicate, Path=Visibility}" Value="Visible">
                                 <Setter Property="IsEnabled" Value="False" />
                             </DataTrigger>
+
                         </Style.Triggers>
                     </Style>
                 </Button.Style>
@@ -724,6 +769,7 @@
                 <Button.Style>
                     <Style BasedOn="{StaticResource WideButton}" TargetType="Button">
                         <Setter Property="IsEnabled" Value="True" />
+
                     </Style>
                 </Button.Style>
             </Button>
@@ -731,14 +777,11 @@
         <TextBlock Name="Main_Result" Grid.Row="3" Margin="0,10,100,0" HorizontalAlignment="Right" DockPanel.Dock="Right">
             <TextBlock.Style>
                 <Style TargetType="TextBlock">
-                    <Setter Property="Foreground" Value="Black" />
+                    <Setter Property="Foreground" Value="Green" />
                     <Setter Property="Visibility" Value="Visible" />
                     <Style.Triggers>
                         <Trigger Property="Text" Value="Action failed!">
                             <Setter Property="Foreground" Value="IndianRed" />
-                        </Trigger>
-						<Trigger Property="Text" Value="Action successful!">
-                            <Setter Property="Foreground" Value="Green" />
                         </Trigger>
                         <DataTrigger Binding="{Binding ElementName=Main_Result, Path=Text.Length}" Value="0">
                             <Setter Property="Visibility" Value="Collapsed" />
