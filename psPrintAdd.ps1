@@ -12,7 +12,8 @@ if ($host.name -eq 'ConsoleHost') {
 
 else { $global:baseConfigPath = 'C:\psPrintAdd' }
 
-Add-Type -AssemblyName 'System.Windows.Forms'
+Add-Type -AssemblyName PresentationFramework, System.Drawing, System.Windows.Forms, WindowsFormsIntegration
+
 foreach ($dll in ((Get-ChildItem -Path (Join-Path $global:baseConfigPath lib) -Filter *.dll).FullName)) { $null = [System.Reflection.Assembly]::LoadFrom($dll) }
 
 Import-Module (Join-Path $global:baseConfigPath -ChildPath internal.psm1) -Force
@@ -149,14 +150,16 @@ $syncHash.Exception_Close.Add_Click( {
 
 #region Main_Items
 
-$syncHash.Main_Reset.Add_Click( {
-        Reset-Tool
-    })
+$syncHash.Main_Reset.Add_Click( { Reset-Tool })
 
 $syncHash.Main_Add.Add_Click( { Add-PrinterToServer -PrintSettings $configHash.printerSettings[0] })
 
-$syncHash.Main_OpenPrintMgmt.Add_Click( {
-        & printmanagement.msc
-    })
+$syncHash.Main_OpenPrintMgmt.Add_Click( {  & printmanagement.msc  })
 #endregion
-$syncHash.Window.ShowDialog()
+
+# Kill the process when the WPF window is closed - avoids hidden PS proceses from sticking around
+$syncHash.Window.Add_Closing({(Get-Process -PID $pid).Kill()})
+
+# Workaround to avoid WPF crash
+$async = $syncHash.Window.Dispatcher.InvokeAsync({[void]$syncHash.Window.ShowDialog()})
+[void]$async.Wait()
