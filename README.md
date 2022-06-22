@@ -5,4 +5,4 @@ Using the IP address of a network connected printer, runs through the steps of a
 
 Requires RSAT. Add print server DNS names to printsrvList.json. 
 
-![Alt text](web/psPrintAdd.PNG "PS ADD Overview")
+![Alt text](web/psprintadd.gif "PS Overview")
